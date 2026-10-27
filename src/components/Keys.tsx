@@ -1,6 +1,6 @@
-import { useEffect, useState, type FormEvent } from 'react'
-import { clearKeys, getKeyStatus, saveKeys, testKeys, type KeyStatus, type TestResult } from '../lib/api'
-import { DEFAULT_MODEL, readPrefs, writePrefs } from '../lib/storage'
+import { useEffect, useMemo, useState, type FormEvent } from 'react'
+import { clearKeys, getKeyStatus, getModels, saveKeys, testKeys, type KeyStatus, type ModelInfo, type TestResult } from '../lib/api'
+import { readPrefs, writePrefs } from '../lib/storage'
 import { Link } from '../lib/router'
 import { GITHUB_URL } from './SiteHeader'
 import { Brand } from './Brand'
@@ -15,10 +15,44 @@ import {
 } from './Icons'
 import { NebiusMark, TavilyMark } from './Marks'
 
-const MODELS = [
-  { id: 'deepseek-ai/DeepSeek-V4.1-Flash-1017', label: 'DeepSeek V4.1' },
-  { id: 'Qwen/Qwen3-235B-A22B-Instruct-2507', label: 'Qwen3 235B' },
-  { id: 'meta-llama/Llama-3.3-70B-Instruct', label: 'Llama 3.3 70B' },
+const VENDOR_LABELS: Record<string, string> = {
+  deepseek: 'DeepSeek',
+  google: 'Google',
+  meta: 'Meta',
+  minimaxai: 'MiniMax',
+  MiniMaxAI: 'MiniMax',
+  moonshotai: 'Moonshot AI',
+  nvidia: 'NVIDIA',
+  openai: 'OpenAI',
+  openbmb: 'OpenBMB',
+  Qwen: 'Qwen',
+  reflection: 'Reflection',
+  'zai-org': 'Z.ai',
+  NousResearch: 'Nous Research',
+}
+
+const FALLBACK_MODELS: ModelInfo[] = [
+  {
+    id: 'deepseek-ai/DeepSeek-V4.1-Flash-1017',
+    name: 'DeepSeek V4.1 Flash 1017',
+    vendor: 'deepseek',
+    type: 'image2text',
+    contextK: 1048,
+  },
+  {
+    id: 'Qwen/Qwen3-235B-A22B-Instruct-2507',
+    name: 'Qwen3 235B A22B Instruct',
+    vendor: 'Qwen',
+    type: 'text2text',
+    contextK: 262,
+  },
+  {
+    id: 'MiniMaxAI/MiniMax-M3.1-Flash',
+    name: 'MiniMax M3.1 Flash',
+    vendor: 'MiniMaxAI',
+    type: 'image2text',
+    contextK: 1049,
+  },
 ]
 
 export function Keys() {
@@ -30,6 +64,8 @@ export function Keys() {
   const [showNebius, setShowNebius] = useState(false)
   const [showTavily, setShowTavily] = useState(false)
   const [model, setModel] = useState(prefs.model)
+  const [models, setModels] = useState<ModelInfo[]>(FALLBACK_MODELS)
+  const [catalogSource, setCatalogSource] = useState<'loading' | 'live' | 'fallback'>('loading')
   const [webSearch, setWebSearch] = useState(prefs.webSearch)
   const [test, setTest] = useState<TestResult | null>(null)
   const [testing, setTesting] = useState(false)
@@ -48,7 +84,33 @@ export function Keys() {
 
   useEffect(() => {
     void refreshStatus()
+    let active = true
+    getModels()
+      .then((catalog) => {
+        if (!active) return
+        if (catalog.models.length > 0) setModels(catalog.models)
+        setCatalogSource(catalog.source)
+      })
+      .catch(() => {
+        if (active) setCatalogSource('fallback')
+      })
+    return () => {
+      active = false
+    }
   }, [])
+
+  const modelGroups = useMemo(() => {
+    const groups = new Map<string, ModelInfo[]>()
+    for (const item of models) {
+      const vendor = item.vendor || 'other'
+      const list = groups.get(vendor) ?? []
+      list.push(item)
+      groups.set(vendor, list)
+    }
+    return Array.from(groups.entries())
+      .sort(([a], [b]) => a.localeCompare(b))
+      .map(([vendor, items]) => [VENDOR_LABELS[vendor] ?? vendor.charAt(0).toUpperCase() + vendor.slice(1), items] as const)
+  }, [models])
 
   const handleTest = async () => {
     setTesting(true)
@@ -203,23 +265,37 @@ export function Keys() {
               <span>{status?.nebius ? 'Stored locally' : 'Not set'}</span>
             </div>
 
-            <label className="field-label" htmlFor="model">
-              Model
-            </label>
+            <div className="field-label-row">
+              <label className="field-label" htmlFor="model">
+                Model
+              </label>
+              <span className="model-catalog-status">
+                {catalogSource === 'loading'
+                  ? 'Loading catalog…'
+                  : catalogSource === 'live'
+                    ? `${models.length} chat models`
+                    : 'Saved shortlist'}
+              </span>
+            </div>
             <div className="model-field">
               <select id="model" value={model} onChange={(event) => setModel(event.target.value)}>
-                {MODELS.map((item) => (
-                  <option key={item.id} value={item.id}>
-                    {item.label}
-                  </option>
-                ))}
-                {!MODELS.some((item) => item.id === DEFAULT_MODEL) ? (
-                  <option value={DEFAULT_MODEL}>DeepSeek V4.1</option>
+                {!models.some((item) => item.id === model) ? (
+                  <option value={model}>{model}</option>
                 ) : null}
+                {modelGroups.map(([vendor, items]) => (
+                  <optgroup key={vendor} label={vendor}>
+                    {items.map((item) => (
+                      <option key={item.id} value={item.id}>
+                        {item.name}
+                        {item.contextK ? ` · ${Math.round(item.contextK)}K ctx` : ''}
+                      </option>
+                    ))}
+                  </optgroup>
+                ))}
               </select>
               <span className="model-field__change">Change</span>
             </div>
-            <p className="field-note">We test the key before saving.</p>
+            <p className="field-note">The full chat catalog comes from Token Factory. We test the key before saving.</p>
           </section>
 
           <div className="keys-divider" />

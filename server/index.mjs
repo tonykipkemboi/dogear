@@ -273,6 +273,50 @@ async function keyStatus() {
   }
 }
 
+const FALLBACK_MODELS = [
+  { id: 'deepseek-ai/DeepSeek-V4.1-Flash-1017', name: 'DeepSeek V4.1 Flash 1017', vendor: 'deepseek', type: 'image2text', contextK: 1048 },
+  { id: 'Qwen/Qwen3-235B-A22B-Instruct-2507', name: 'Qwen3 235B A22B Instruct', vendor: 'Qwen', type: 'text2text', contextK: 262 },
+  { id: 'MiniMaxAI/MiniMax-M3.1-Flash', name: 'MiniMax M3.1 Flash', vendor: 'MiniMaxAI', type: 'image2text', contextK: 1049 },
+]
+
+let modelCache = { at: 0, models: null }
+
+async function getModelCatalog() {
+  if (modelCache.models && Date.now() - modelCache.at < 60 * 60 * 1000) {
+    return { models: modelCache.models, source: 'live' }
+  }
+  try {
+    const response = await fetch('https://tokenfactory.nebius.com/api/public/models_info', {
+      signal: AbortSignal.timeout(20_000),
+    })
+    if (!response.ok) throw new Error('Catalog unavailable.')
+    const rows = await response.json()
+    const seen = new Set()
+    const models = []
+    for (const row of Array.isArray(rows) ? rows : []) {
+      if (row.status && row.status !== 'active') continue
+      for (const flavor of Array.isArray(row.flavors) ? row.flavors : []) {
+        if (flavor.model_type !== 'text2text' && flavor.model_type !== 'image2text') continue
+        if (!flavor.model_id || seen.has(flavor.model_id)) continue
+        seen.add(flavor.model_id)
+        models.push({
+          id: flavor.model_id,
+          name: flavor.model_name || row.name || flavor.model_id,
+          vendor: row.vendor || 'other',
+          type: flavor.model_type,
+          contextK: flavor.context_window_k || row.context_window_k || 0,
+        })
+      }
+    }
+    if (!models.length) throw new Error('Catalog was empty.')
+    models.sort((a, b) => a.vendor.localeCompare(b.vendor) || a.name.localeCompare(b.name))
+    modelCache = { at: Date.now(), models }
+    return { models, source: 'live' }
+  } catch {
+    return { models: FALLBACK_MODELS, source: 'fallback' }
+  }
+}
+
 async function testNebius(key) {
   if (!key) return { ok: false, detail: 'No Nebius key is set.' }
   try {
@@ -426,6 +470,11 @@ async function handleApi(request, response, url) {
 
   if (url.pathname === '/api/health' && request.method === 'GET') {
     sendJson(response, 200, { ok: true, keychain: IS_MAC })
+    return
+  }
+
+  if (url.pathname === '/api/models' && request.method === 'GET') {
+    sendJson(response, 200, await getModelCatalog())
     return
   }
 

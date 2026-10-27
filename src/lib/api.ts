@@ -141,3 +141,20 @@ export async function getLibrary(): Promise<LibraryEntry[]> {
   const data = await request<{ entries: LibraryEntry[] }>('/api/library')
   return data.entries
 }
+
+export interface ModelInfo {
+  id: string
+  name: string
+  vendor: string
+  type: string
+  contextK: number
+}
+
+export interface ModelCatalog {
+  models: ModelInfo[]
+  source: 'live' | 'fallback'
+}
+
+export async function getModels(): Promise<ModelCatalog> {
+  return request<ModelCatalog>('/api/models', {}, 30_000)
+}

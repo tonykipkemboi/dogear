@@ -3570,6 +3570,26 @@ select:focus-visible {
   background: var(--muted);
 }
 
+.field-label-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 6px;
+}
+
+.field-label-row .field-label {
+  margin: 0;
+}
+
+.model-catalog-status {
+  font-family: var(--font-mono);
+  font-size: 7px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
 .field-label {
   display: block;
   margin: 0 0 6px;
