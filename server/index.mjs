@@ -3,7 +3,7 @@ import path from 'node:path'
 import os from 'node:os'
 import { existsSync } from 'node:fs'
 import { chmod, mkdir, readFile, readdir, stat, writeFile } from 'node:fs/promises'
-import { execFile, spawn } from 'node:child_process'
+import { execFile } from 'node:child_process'
 import { fileURLToPath } from 'node:url'
 import { promisify } from 'node:util'
 import { compileYouTubeGuide } from './compile.mjs'
@@ -196,24 +196,28 @@ async function getKeychainKey(service) {
 }
 
 async function setKeychainKey(service, value) {
-  const helper = path.join(ROOT, 'scripts', 'keychain-set.swift')
-  await new Promise((resolve, reject) => {
-    const child = spawn('swift', [helper, service, USER], { stdio: ['pipe', 'ignore', 'ignore'] })
-    const timer = setTimeout(() => {
-      child.kill('SIGKILL')
-      reject(new Error('Keychain write timed out.'))
-    }, 20_000)
-    child.on('error', (error) => {
-      clearTimeout(timer)
-      reject(error)
-    })
-    child.on('close', (code) => {
-      clearTimeout(timer)
-      if (code === 0) resolve()
-      else reject(new Error('Keychain write failed.'))
-    })
-    child.stdin.end(value)
-  })
+  try {
+    await execFileAsync(
+      'security',
+      [
+        'add-generic-password',
+        '-U',
+        '-a',
+        USER,
+        '-s',
+        service,
+        '-l',
+        'Dogear',
+        '-T',
+        '/usr/bin/security',
+        '-w',
+        value,
+      ],
+      { timeout: 10_000, maxBuffer: 32 * 1024 },
+    )
+  } catch {
+    throw new Error('Could not write to the Keychain. Unlock Keychain and try again.')
+  }
 }
 
 async function removeKeychainKey(service) {
