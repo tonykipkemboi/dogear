@@ -3570,22 +3570,19 @@ select:focus-visible {
   background: var(--muted);
 }
 
-.keys-create-line {
-  margin: -6px 0 14px;
-  font-size: 10px;
-  color: var(--graphite);
-}
-
-.keys-create-line a {
+.keys-create-inline {
   display: inline-flex;
   align-items: center;
   gap: 3px;
   border-bottom: 1px solid var(--hairline-strong);
-  color: var(--ink);
+  font-size: 9px;
+  color: var(--graphite);
+  white-space: nowrap;
 }
 
-.keys-create-line a:hover {
+.keys-create-inline:hover {
   border-bottom-color: var(--ink);
+  color: var(--ink);
 }
 
 .field-label-row {
@@ -3806,6 +3803,17 @@ select:focus-visible {
 
 .switch.is-on span {
   transform: translateX(16px);
+}
+
+.switch:focus {
+  outline: none;
+}
+
+.switch:focus-visible {
+  outline: none;
+  box-shadow:
+    0 0 0 2px var(--paper),
+    0 0 0 4px var(--hairline-strong);
 }
 
 .keys-card__foot {
@@ -5516,4 +5524,75 @@ select:focus-visible {
 
 .library-card + .library-card {
   margin-top: 14px;
+}
+
+
+/* Desktop settings fits in one comfortable viewport. */
+@media (min-width: 761px) {
+  .settings-main {
+    padding-top: 16px;
+    padding-bottom: 18px;
+  }
+
+  .settings-main h1 {
+    margin-top: 9px;
+    font-size: 48px;
+  }
+
+  .settings-lede {
+    margin-top: 8px;
+    font-size: 15px;
+    line-height: 1.5;
+  }
+
+  .keys-card {
+    margin-top: 22px;
+    padding: 18px 24px 14px;
+  }
+
+  .keys-section__head {
+    margin-bottom: 10px;
+  }
+
+  .key-field,
+  .model-field {
+    height: 42px;
+  }
+
+  .field-foot {
+    margin-top: 4px;
+  }
+
+  .field-note {
+    margin-top: 6px;
+  }
+
+  .keys-divider {
+    margin: 12px 0;
+  }
+
+  .toggle-row {
+    margin-bottom: 10px;
+  }
+
+  .keys-card__foot {
+    margin-top: 12px;
+    padding-top: 10px;
+  }
+
+  .keys-env {
+    margin-top: 8px;
+  }
+
+  .keys-actions {
+    margin-top: 12px;
+  }
+
+  .keys-actions .button {
+    height: 40px;
+  }
+
+  .settings-footnote {
+    margin-top: 10px;
+  }
 }

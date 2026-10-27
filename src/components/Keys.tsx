@@ -219,20 +219,19 @@ export function Keys() {
               </span>
             </div>
 
-            <p className="keys-create-line">
-              Need a Token Factory key?{' '}
+            <div className="field-label-row">
+              <label className="field-label" htmlFor="nebius-key">
+                API key
+              </label>
               <a
+                className="keys-create-inline"
                 href="https://tokenfactory.nebius.com/project/api-keys"
                 target="_blank"
                 rel="noreferrer"
               >
-                Create one <ArrowUpRightIcon size={10} />
+                Need a key? Create one <ArrowUpRightIcon size={9} />
               </a>
-            </p>
-
-            <label className="field-label" htmlFor="nebius-key">
-              API key
-            </label>
+            </div>
             <div className={`key-field ${status?.nebius ? 'is-configured' : ''}`}>
               <KeyIcon size={14} />
               <input
@@ -326,13 +325,6 @@ export function Keys() {
               </span>
             </div>
 
-            <p className="keys-create-line">
-              Need a Tavily key?{' '}
-              <a href="https://app.tavily.com/home" target="_blank" rel="noreferrer">
-                Create one <ArrowUpRightIcon size={10} />
-              </a>
-            </p>
-
             <div className="toggle-row">
               <div>
                 <strong>Web research</strong>
@@ -349,9 +341,19 @@ export function Keys() {
               </button>
             </div>
 
-            <label className="field-label" htmlFor="tavily-key">
-              API key
-            </label>
+            <div className="field-label-row">
+              <label className="field-label" htmlFor="tavily-key">
+                API key
+              </label>
+              <a
+                className="keys-create-inline"
+                href="https://app.tavily.com/home"
+                target="_blank"
+                rel="noreferrer"
+              >
+                Need a key? Create one <ArrowUpRightIcon size={9} />
+              </a>
+            </div>
             <div className={`key-field ${status?.tavily ? 'is-configured' : ''}`}>
               <KeyIcon size={14} />
               <input

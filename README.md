@@ -17,7 +17,7 @@ A chaptered guide you can read at your level, search, and question.
 ![Node](https://img.shields.io/badge/Node-20%2B-161616?style=flat-square&logo=nodedotjs&logoColor=5FA04E)
 ![Nebius Token Factory](https://img.shields.io/badge/Nebius_Token_Factory-models-E9FF4F?style=flat-square&labelColor=161616)
 ![Tavily](https://img.shields.io/badge/Tavily-search-FAFAF7?style=flat-square&labelColor=161616)
-![Playwright](https://img.shields.io/badge/Playwright-15_flows-161616?style=flat-square&logo=playwright&logoColor=2EAD33)
+![Playwright](https://img.shields.io/badge/Playwright-16_flows-161616?style=flat-square&logo=playwright&logoColor=2EAD33)
 ![Vitest](https://img.shields.io/badge/Vitest-19_tests-161616?style=flat-square&logo=vitest&logoColor=6E9F18)
 
 <sub>Private preview · local-first · bring your own keys</sub>
@@ -108,7 +108,7 @@ dogear/
 ## Verification
 
 - 19 unit tests
-- 15 Playwright flows covering desktop, tablet, mobile, inline playback, sources, keys, and the sidebar
+- 16 Playwright flows covering desktop, tablet, mobile, inline playback, sources, keys, and the sidebar
 - Production build and deep links verified
 - Live Tavily search verified
 

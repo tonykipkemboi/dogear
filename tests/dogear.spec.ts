@@ -132,6 +132,14 @@ test.describe('desktop', () => {
     await expect(page.locator('input[type="password"]')).toHaveCount(2)
   })
 
+  test('keys page fits in a desktop viewport without scrolling', async ({ page }) => {
+    await page.goto('/settings')
+    const fits = await page.evaluate(
+      () => document.documentElement.scrollHeight <= window.innerHeight + 1,
+    )
+    expect(fits).toBe(true)
+  })
+
   test('keys pad never reveals a stored key', async ({ page }) => {
     await page.goto('/settings')
     const inputs = page.locator('.key-field input')
