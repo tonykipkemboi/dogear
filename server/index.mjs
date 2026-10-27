@@ -6,6 +6,7 @@ import { chmod, mkdir, readFile, readdir, stat, writeFile } from 'node:fs/promis
 import { execFile } from 'node:child_process'
 import { fileURLToPath } from 'node:url'
 import { promisify } from 'node:util'
+import { jsonrepair } from 'jsonrepair'
 import { parseYouTubeId, prepareYouTubeGuide } from './compile.mjs'
 
 const execFileAsync = promisify(execFile)
@@ -382,10 +383,15 @@ function parseModelJson(text) {
   const start = candidate.indexOf('{')
   const end = candidate.lastIndexOf('}')
   if (start === -1 || end <= start) throw new Error('The model did not return a guide.')
+  const json = candidate.slice(start, end + 1)
   try {
-    return JSON.parse(candidate.slice(start, end + 1))
+    return JSON.parse(json)
   } catch {
-    throw new Error('The model returned an unreadable guide. Try again.')
+    try {
+      return JSON.parse(jsonrepair(json))
+    } catch {
+      throw new Error('The model returned an unreadable guide. Try again.')
+    }
   }
 }
 
@@ -417,6 +423,7 @@ async function generateGuideJson({ model, level, purpose, meta, cues }) {
     'Do not paste the transcript. Paraphrase, explain, and connect the ideas.',
     'Every claim must be supported by the transcript. If the transcript is uncertain, say so.',
     'Use the transcript timestamps to place chapter boundaries in seconds.',
+    'Escape quotation marks inside strings and do not use trailing commas.',
   ].join(' ')
 
   const user = [
@@ -432,34 +439,69 @@ async function generateGuideJson({ model, level, purpose, meta, cues }) {
     transcriptForModel(cues),
   ].join('\n\n')
 
-  const response = await fetch('https://api.tokenfactory.nebius.com/v1/chat/completions', {
-    method: 'POST',
-    headers: {
-      Authorization: `Bearer ${stored.value}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      model,
-      messages: [
-        { role: 'system', content: system },
-        { role: 'user', content: user },
-      ],
-      temperature: 0.2,
-      max_tokens: 7000,
-    }),
-    signal: AbortSignal.timeout(120_000),
-  })
+  const callModel = async (messages, temperature) => {
+    const response = await fetch('https://api.tokenfactory.nebius.com/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${stored.value}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        model,
+        messages,
+        temperature,
+        max_tokens: 7000,
+      }),
+      signal: AbortSignal.timeout(120_000),
+    })
 
-  if (!response.ok) {
-    if (response.status === 401 || response.status === 403) {
-      throw new Error('Nebius rejected the key. Check it in Keys.')
+    if (!response.ok) {
+      if (response.status === 401 || response.status === 403) {
+        throw new Error('Nebius rejected the key. Check it in Keys.')
+      }
+      throw new Error(`Nebius returned ${response.status}.`)
     }
-    throw new Error(`Nebius returned ${response.status}.`)
+    const data = await response.json()
+    const content = data?.choices?.[0]?.message?.content
+    if (typeof content !== 'string' || !content.trim()) throw new Error('Nebius returned an empty guide.')
+    return content
   }
-  const data = await response.json()
-  const content = data?.choices?.[0]?.message?.content
-  if (typeof content !== 'string' || !content.trim()) throw new Error('Nebius returned an empty guide.')
-  return parseModelJson(content)
+
+  const content = await callModel(
+    [
+      { role: 'system', content: system },
+      { role: 'user', content: user },
+    ],
+    0.2,
+  )
+
+  try {
+    return parseModelJson(content)
+  } catch {
+    const repaired = await callModel(
+      [
+        {
+          role: 'system',
+          content: `${system} Return one valid JSON object only. No commentary.`,
+        },
+        {
+          role: 'user',
+          content: [
+            'The previous guide response was not valid JSON. Repair it and return the same guide as valid JSON only.',
+            `Schema: ${schema}`,
+            'Previous output:',
+            content.slice(0, 14000),
+          ].join('\n\n'),
+        },
+      ],
+      0,
+    )
+    try {
+      return parseModelJson(repaired)
+    } catch {
+      throw new Error('The model returned an unreadable guide twice. Try again.')
+    }
+  }
 }
 
 function normalizeGuideJson(parsed, prepared, level, purpose) {
