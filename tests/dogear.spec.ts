@@ -59,7 +59,7 @@ test.describe('desktop', () => {
     await expect(page.locator('.source-card')).toBeVisible()
     await page.locator('.source-card').click()
     await expect(page.locator('.source-dialog--desktop')).toBeVisible()
-    await expect(page.locator('.source-rail__card')).toHaveCount(3)
+    await expect(page.locator('.source-rail__card')).toHaveCount(4)
     await expect(page.locator('.source-main__title')).toHaveText('Prefix caching')
     await page.keyboard.press('Escape')
     await expect(page.locator('.source-dialog')).toHaveCount(0)
@@ -83,6 +83,32 @@ test.describe('desktop', () => {
     await expect(page.locator('.highlights-aside .recent-highlight-row')).toHaveCount(0)
     await page.reload()
     await expect(page.locator('.highlights-aside .recent-highlight-row')).toHaveCount(0)
+  })
+
+  test('highlight actions follow the selected chapter and passage', async ({ page }) => {
+    await page.goto('/read/ai-infrastructure?chapter=llm-d')
+    const paragraph = page.locator('.article__paragraph').nth(1)
+    await paragraph.scrollIntoViewIfNeeded()
+    await paragraph.evaluate((el) => {
+      const text = el.textContent ?? ''
+      const start = text.indexOf('LLM-D')
+      const node = el.firstChild
+      if (!node || start < 0) return
+      const range = document.createRange()
+      range.setStart(node, start)
+      range.setEnd(node, start + 5)
+      const selection = window.getSelection()
+      selection?.removeAllRanges()
+      selection?.addRange(range)
+      el.dispatchEvent(new MouseEvent('mouseup', { bubbles: true }))
+    })
+    await expect(page.locator('.highlight-toolbar')).toBeVisible()
+    await page.locator('.highlight-toolbar button').filter({ hasText: 'Simplify' }).click()
+    await expect(page.locator('.highlight-content h3')).toHaveText('LLM-D, simply.')
+    await expect(page.locator('.highlight-content > p')).not.toContainText('scratch pad')
+
+    await page.getByRole('tab', { name: 'Source' }).click()
+    await expect(page.locator('.source-card__copy > span:first-child')).toContainText('LLM-D: distributed inference')
   })
 
   test('concept frames come from the video and play from their timestamp', async ({ page }) => {

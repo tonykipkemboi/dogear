@@ -334,10 +334,13 @@ export function Keys() {
                 type="button"
                 role="switch"
                 aria-checked={webSearch}
+                aria-label="Web research"
                 className={`switch ${webSearch ? 'is-on' : ''}`}
                 onClick={() => setWebSearch((current) => !current)}
               >
-                <span />
+                <span className="switch__option switch__option--off">O</span>
+                <span className="switch__option switch__option--on">I</span>
+                <span className="switch__thumb" aria-hidden="true" />
               </button>
             </div>
 

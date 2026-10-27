@@ -42,7 +42,38 @@ export function getHighlightContent(
   level: Level,
   _quote: string,
   sources?: Source[],
+  chapter?: Chapter,
 ): HighlightContent {
+  if (action !== 'source' && chapter && chapter.id !== 'kv-cache') {
+    const points = chapter.keyPoints
+    const focus = chapter.blocks.find(
+      (block) => block.type === 'p' && block.text.toLowerCase().includes(_quote.toLowerCase()),
+    )
+    const focusText = focus && focus.type === 'p' ? focus.text : ''
+    if (action === 'explain') {
+      return {
+        title: `${chapter.short}, in context.`,
+        body: `${chapter.deck}${focusText ? ` ${focusText}` : ` ${points.join(' ')}`}`,
+        why: points[1] ?? points[0],
+        chips: ['ELI5', 'ELI15'],
+      }
+    }
+    if (action === 'simplify') {
+      return {
+        title: `${chapter.short}, simply.`,
+        body: `${chapter.deck} ${points[0]}`,
+        why: points[1] ?? points[0],
+        chips: ['ELI5', 'ELI15'],
+      }
+    }
+    return {
+      title: `${chapter.short} in practice.`,
+      body: `Here is the idea in one request. ${points[0]} ${points[1] ?? ''}`.trim(),
+      why: points[2] ?? points[0],
+      chips: ['ELI5', 'ELI15'],
+    }
+  }
+
   if (action === 'explain') {
     return {
       ...EXPLAIN[level],
@@ -70,8 +101,17 @@ export function getHighlightContent(
     }
   }
 
+  const preferredSource =
+    chapter && chapter.number >= 8
+      ? 'llm-d'
+      : chapter && chapter.number >= 2 && chapter.number <= 3
+        ? 'nvidia-h200'
+        : 'vllm-prefix'
   const source =
-    sources?.find((item) => item.id === 'vllm-prefix') ?? sources?.[0] ?? getSource('vllm-prefix')
+    sources?.find((item) => item.id === preferredSource) ??
+    sources?.find((item) => item.id === 'vllm-prefix') ??
+    sources?.[0] ??
+    getSource('vllm-prefix')
   return {
     title: source.title,
     body: source.extract[0],

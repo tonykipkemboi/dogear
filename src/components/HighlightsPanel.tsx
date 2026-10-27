@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react'
 import type { HighlightAction, Level, RecentHighlight, Source } from '../data/guide'
 import { LEVELS } from '../data/guide'
-import { getHighlightContent } from '../lib/content'
+import { getHighlightContent, type HighlightContent } from '../lib/content'
 import { formatTime } from '../lib/format'
 import {
   ArrowRightIcon,
@@ -25,6 +25,8 @@ interface HighlightsPanelProps {
   quote: string | null
   action: HighlightAction
   level: Level
+  content?: HighlightContent | null
+  loading?: boolean
   recent: RecentHighlight[]
   sources: Source[]
   messages: PanelMessage[]
@@ -52,6 +54,8 @@ export function HighlightsPanel({
   quote,
   action,
   level,
+  content: contentOverride,
+  loading = false,
   recent,
   sources,
   messages,
@@ -70,7 +74,7 @@ export function HighlightsPanel({
   const [question, setQuestion] = useState('')
   const [showMath, setShowMath] = useState(false)
   const scrollRef = useRef<HTMLDivElement>(null)
-  const content = getHighlightContent(action, level, quote ?? '', sources)
+  const content = contentOverride ?? getHighlightContent(action, level, quote ?? '', sources)
 
   useEffect(() => {
     setShowMath(false)
@@ -130,6 +134,13 @@ export function HighlightsPanel({
                 </button>
               ))}
             </div>
+
+            {loading ? (
+              <div className="highlight-live-status" aria-live="polite">
+                <span className="highlight-live-status__dot" aria-hidden="true" />
+                Asking your connected model…
+              </div>
+            ) : null}
 
             <div className="highlight-content">
               <h3>{content.title}</h3>

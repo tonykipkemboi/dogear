@@ -137,6 +137,31 @@ export const SOURCES: Source[] = [
     verified: true,
   },
   {
+    id: 'llm-d',
+    short: 'LLM-D',
+    title: 'LLM-D: distributed inference',
+    domain: 'llm-d.ai',
+    published: '2026',
+    readTime: '8 min read',
+    url: 'https://llm-d.ai',
+    usedFor: 'Prefill and decode can run on different pools.',
+    extract: [
+      'LLM-D is an open-source project for distributed LLM inference. It separates prefill and decode across worker pools and treats routing as part of the serving path, so a request can be sent to a worker that already has the prefix it needs.',
+      'The KV cache becomes a resource that moves between workers. Capacity, eviction, and cache-aware routing all matter as much as raw GPU compute.',
+    ],
+    keyPoints: [
+      'Prefill and decode can run in separate pools.',
+      'KV cache movement is part of the request path.',
+      'Cache-aware routing is a first-class scheduling concern.',
+    ],
+    more: [
+      { title: 'LLM-D on GitHub', href: 'https://github.com/llm-d/llm-d' },
+      { title: 'LLM-D project', href: 'https://llm-d.ai' },
+    ],
+    why: 'Selected because it covers the disaggregated serving architecture in this chapter.',
+    verified: true,
+  },
+  {
     id: 'hf-kv',
     short: 'Hugging Face',
     title: 'KV cache',

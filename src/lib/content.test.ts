@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { getHighlightContent, localAnswer } from './content'
-import { SEEDED_GUIDE, getChapter, LEVELS } from '../data/guide'
+import { SEEDED_GUIDE, getChapter, LEVELS, SOURCES } from '../data/guide'
 
 describe('getHighlightContent', () => {
   it('changes the explanation with the level', () => {
@@ -16,6 +16,18 @@ describe('getHighlightContent', () => {
     const source = getHighlightContent('source', 'ELI15', 'q')
     expect(source.source?.id).toBe('vllm-prefix')
     expect(source.source?.verified).toBe(true)
+  })
+
+  it('uses the selected chapter instead of the KV-cache static copy', () => {
+    const chapter = getChapter(SEEDED_GUIDE, 'llm-d')
+    const simplified = getHighlightContent('simplify', 'ELI15', 'LLM-D', SOURCES, chapter)
+    expect(simplified.title).toBe('LLM-D, simply.')
+    expect(simplified.body).toContain('Prefill and decode can run on different pools')
+    expect(simplified.body).not.toContain('scratch pad')
+    expect(simplified.chips).not.toContain('Show the math')
+
+    const source = getHighlightContent('source', 'ELI15', 'LLM-D', SOURCES, chapter)
+    expect(source.source?.id).toBe('llm-d')
   })
 
   it('offers all four level labels in the chips', () => {

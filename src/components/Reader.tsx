@@ -1,8 +1,8 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { Chapter, Guide, HighlightAction, Level, RecentHighlight, Source } from '../data/guide'
 import { DEFAULT_LEVEL, getChapter, getSource, SEEDED_GUIDE } from '../data/guide'
 import { ask as askQuestion, searchWeb } from '../lib/api'
-import { localAnswer } from '../lib/content'
+import { getHighlightContent, localAnswer, type HighlightContent } from '../lib/content'
 import { clamp } from '../lib/format'
 import { navigate, setSearchParam, useLocation } from '../lib/router'
 import {
@@ -72,6 +72,9 @@ export function Reader() {
   const [recent, setRecent] = useState<RecentHighlight[]>(() => readRecentHighlights(guide.recentHighlights))
   const [messages, setMessages] = useState<PanelMessage[]>([])
   const [asking, setAsking] = useState(false)
+  const [liveHighlight, setLiveHighlight] = useState<HighlightContent | null>(null)
+  const [highlightLoading, setHighlightLoading] = useState(false)
+  const liveCache = useRef(new Map<string, HighlightContent>())
   const [notes, setNotes] = useState<SavedNote[]>(() => readNotes())
   const [sources, setSources] = useState<Source[]>(guide.sources)
   const [sourceId, setSourceId] = useState(guide.sources[0].id)
@@ -175,6 +178,11 @@ export function Reader() {
     setSearchParam('view', readView ? null : 'read', false)
   }
 
+  const changeLevel = useCallback((next: Level) => {
+    setLiveHighlight(null)
+    setLevel(next)
+  }, [])
+
   const addRecent = useCallback((text: string) => {
     const next: RecentHighlight = {
       id: `h-${Date.now()}`,
@@ -204,6 +212,7 @@ export function Reader() {
   const applyAction = useCallback(
     (nextAction: HighlightAction) => {
       if (!quote) return
+      setLiveHighlight(null)
       setQuote({ ...quote, action: nextAction })
       if (!mobile && !readView) setShowPanel(true)
       if (mobile) {
@@ -219,6 +228,7 @@ export function Reader() {
     (text: string, anchor: SelectionAnchor) => {
       const nextQuote: QuoteState = { text, action: 'explain' }
       setToolbarMuted(false)
+      setLiveHighlight(null)
       setQuote(nextQuote)
       setSelectionAnchor(anchor)
       setSheetOpen(false)
@@ -232,6 +242,7 @@ export function Reader() {
     (highlight: RecentHighlight, action: HighlightAction = 'explain') => {
       const nextQuote: QuoteState = { text: highlight.quote, action }
       setToolbarMuted(false)
+      setLiveHighlight(null)
       setQuote(nextQuote)
       setSelectionAnchor(null)
       setMessages([])
@@ -256,6 +267,7 @@ export function Reader() {
         return
       }
       setToolbarMuted(false)
+      setLiveHighlight(null)
       setQuote({ text: first.quote, action })
       setMessages([])
       if (mobile) setSheetOpen(true)
@@ -384,19 +396,82 @@ export function Reader() {
     }
   }
 
+  const chapterContext = useMemo(
+    () =>
+      chapter.blocks
+        .filter((block) => block.type === 'p' || block.type === 'callout')
+        .map((block) => ('text' in block ? block.text : ''))
+        .join('\n\n'),
+    [chapter],
+  )
+
+  useEffect(() => {
+    const current = quote
+    if (!current || current.action === 'source') {
+      setLiveHighlight(null)
+      setHighlightLoading(false)
+      return undefined
+    }
+
+    const cacheKey = `${chapter.id}|${level}|${prefs.model}|${current.action}|${current.text}`
+    const cached = liveCache.current.get(cacheKey)
+    if (cached) {
+      setLiveHighlight(cached)
+      setHighlightLoading(false)
+      return undefined
+    }
+
+    setLiveHighlight(null)
+    setHighlightLoading(true)
+    let cancelled = false
+    const prompt =
+      current.action === 'simplify'
+        ? `Explain the highlighted passage as simply as possible for a ${level} reader. Keep the chapter's meaning.`
+        : current.action === 'example'
+          ? `Give one concrete example that makes the highlighted passage clear. Stay inside the chapter context.`
+          : `Explain the highlighted passage in the context of this chapter. Start with the idea, then show how it works.`
+
+    askQuestion({
+      question: `${prompt} Chapter: ${chapter.title}`,
+      quote: current.text,
+      context: chapterContext,
+      level,
+      model: prefs.model,
+    })
+      .then((result) => {
+        if (cancelled) return
+        const local = getHighlightContent(current.action, level, current.text, sources, chapter)
+        const next: HighlightContent = { ...local, body: result.answer }
+        liveCache.current.set(cacheKey, next)
+        setLiveHighlight(next)
+      })
+      .catch(() => {
+        if (!cancelled) setLiveHighlight(null)
+      })
+      .finally(() => {
+        if (!cancelled) setHighlightLoading(false)
+      })
+
+    return () => {
+      cancelled = true
+    }
+  }, [quote, level, chapter, chapterContext, prefs.model, sources])
+
+  const localHighlightContent = quote
+    ? getHighlightContent(quote.action, level, quote.text, sources, chapter)
+    : null
+  const panelContent =
+    quote?.action === 'source' ? localHighlightContent : liveHighlight ?? localHighlightContent
+
   const handleAsk = async (question: string) => {
     const userMessage: PanelMessage = { id: `u-${Date.now()}`, role: 'user', text: question }
     setMessages((current) => [...current, userMessage])
     setAsking(true)
-    const context = chapter.blocks
-      .filter((block) => block.type === 'p' || block.type === 'callout')
-      .map((block) => ('text' in block ? block.text : ''))
-      .join('\n\n')
     try {
       const result = await askQuestion({
         question,
         quote: quote?.text,
-        context,
+        context: chapterContext,
         level,
         model: prefs.model,
       })
@@ -441,13 +516,15 @@ export function Reader() {
       quote={quote?.text ?? null}
       action={quote?.action ?? 'explain'}
       level={level}
+      content={panelContent}
+      loading={highlightLoading}
       recent={recent}
       sources={sources}
       messages={messages}
       asking={asking}
       searchingWeb={searchingWeb}
       onAction={applyAction}
-      onChangeLevel={setLevel}
+      onChangeLevel={changeLevel}
       onClose={onClose}
       onPickHighlight={pickHighlight}
       onDeleteHighlight={deleteRecent}
