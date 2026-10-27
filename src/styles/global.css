@@ -3570,6 +3570,24 @@ select:focus-visible {
   background: var(--muted);
 }
 
+.keys-create-line {
+  margin: -6px 0 14px;
+  font-size: 10px;
+  color: var(--graphite);
+}
+
+.keys-create-line a {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  border-bottom: 1px solid var(--hairline-strong);
+  color: var(--ink);
+}
+
+.keys-create-line a:hover {
+  border-bottom-color: var(--ink);
+}
+
 .field-label-row {
   display: flex;
   align-items: baseline;

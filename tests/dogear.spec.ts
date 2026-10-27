@@ -18,6 +18,13 @@ test.describe('desktop', () => {
     await expect(page.getByLabel('API key').first()).toBeVisible()
     await page.goto('/keys')
     await expect(page.getByRole('heading', { name: 'Bring your own keys.' })).toBeVisible()
+    const createLinks = page.getByRole('link', { name: /Create one/i })
+    await expect(createLinks).toHaveCount(2)
+    await expect(createLinks.first()).toHaveAttribute(
+      'href',
+      'https://tokenfactory.nebius.com/project/api-keys',
+    )
+    await expect(createLinks.last()).toHaveAttribute('href', 'https://app.tavily.com/home')
   })
 
   test('home validates a URL and opens the seeded guide', async ({ page }) => {

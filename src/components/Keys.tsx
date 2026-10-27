@@ -219,6 +219,17 @@ export function Keys() {
               </span>
             </div>
 
+            <p className="keys-create-line">
+              Need a Token Factory key?{' '}
+              <a
+                href="https://tokenfactory.nebius.com/project/api-keys"
+                target="_blank"
+                rel="noreferrer"
+              >
+                Create one <ArrowUpRightIcon size={10} />
+              </a>
+            </p>
+
             <label className="field-label" htmlFor="nebius-key">
               API key
             </label>
@@ -259,8 +270,12 @@ export function Keys() {
               </button>
             </div>
             <div className="field-foot" id="nebius-key-help">
-              <a href="https://tokenfactory.nebius.com" target="_blank" rel="noreferrer">
-                Get a key at tokenfactory.nebius.com <ArrowUpRightIcon size={10} />
+              <a
+                href="https://tokenfactory.nebius.com/project/api-keys"
+                target="_blank"
+                rel="noreferrer"
+              >
+                Token Factory API keys <ArrowUpRightIcon size={10} />
               </a>
               <span>{status?.nebius ? 'Stored locally' : 'Not set'}</span>
             </div>
@@ -310,6 +325,13 @@ export function Keys() {
                 <span className="status-dot" aria-hidden="true" /> Optional
               </span>
             </div>
+
+            <p className="keys-create-line">
+              Need a Tavily key?{' '}
+              <a href="https://app.tavily.com/home" target="_blank" rel="noreferrer">
+                Create one <ArrowUpRightIcon size={10} />
+              </a>
+            </p>
 
             <div className="toggle-row">
               <div>
@@ -367,8 +389,8 @@ export function Keys() {
               </button>
             </div>
             <div className="field-foot" id="tavily-key-help">
-              <a href="https://tavily.com" target="_blank" rel="noreferrer">
-                Get a key at tavily.com <ArrowUpRightIcon size={10} />
+              <a href="https://app.tavily.com/home" target="_blank" rel="noreferrer">
+                Tavily dashboard <ArrowUpRightIcon size={10} />
               </a>
               <span>{status?.tavily ? 'Stored locally' : 'Not set'}</span>
             </div>
