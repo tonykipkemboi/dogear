@@ -164,6 +164,17 @@ test.describe('desktop', () => {
       () => document.documentElement.scrollHeight <= window.innerHeight + 1,
     )
     expect(fits).toBe(true)
+
+    const gaps = await page.locator('.switch').evaluate((el) => {
+      const track = el.getBoundingClientRect()
+      const thumb = el.querySelector('.switch__thumb')?.getBoundingClientRect()
+      if (!thumb) return null
+      return {
+        top: Math.round(thumb.top - track.top),
+        bottom: Math.round(track.bottom - thumb.bottom),
+      }
+    })
+    expect(gaps?.top).toBe(gaps?.bottom)
   })
 
   test('keys pad never reveals a stored key', async ({ page }) => {

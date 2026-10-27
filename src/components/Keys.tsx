@@ -338,8 +338,6 @@ export function Keys() {
                 className={`switch ${webSearch ? 'is-on' : ''}`}
                 onClick={() => setWebSearch((current) => !current)}
               >
-                <span className="switch__option switch__option--off">O</span>
-                <span className="switch__option switch__option--on">I</span>
                 <span className="switch__thumb" aria-hidden="true" />
               </button>
             </div>

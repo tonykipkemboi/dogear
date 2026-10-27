@@ -3798,7 +3798,7 @@ select:focus-visible {
   color: var(--ink);
 }
 
-.toggle-row span {
+.toggle-row > div > span {
   display: block;
   margin-top: 2px;
   font-size: 11px;
@@ -3807,62 +3807,36 @@ select:focus-visible {
 
 .switch {
   position: relative;
-  display: flex;
-  align-items: center;
-  width: 54px;
-  height: 26px;
+  width: 42px;
+  height: 24px;
   flex: none;
-  padding: 2px;
-  border: 1px solid var(--hairline-strong);
+  padding: 0;
+  border: 0;
   border-radius: 999px;
-  background: var(--wash);
+  background: var(--hairline);
   cursor: pointer;
-  transition:
-    background 180ms var(--ease-out),
-    border-color 180ms var(--ease-out);
+  transition: background 180ms var(--ease-out);
 }
 
 .switch__thumb {
   position: absolute;
-  left: 2px;
-  top: 2px;
-  width: 24px;
-  height: 20px;
-  border-radius: 999px;
+  left: 3px;
+  top: 3px;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
   background: var(--paper);
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08);
   transition:
     transform 180ms var(--ease-out),
     background 180ms var(--ease-out);
 }
 
-.switch__option {
-  position: relative;
-  z-index: 1;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 24px;
-  height: 20px;
-  font-family: var(--font-mono);
-  font-size: 8px;
-  font-weight: 500;
-  color: var(--muted);
-  transition: color 180ms var(--ease-out);
-}
-
 .switch.is-on {
-  border-color: var(--highlighter);
+  background: var(--highlighter);
 }
 
 .switch.is-on .switch__thumb {
-  background: var(--highlighter);
-  transform: translateX(22px);
-}
-
-.switch:not(.is-on) .switch__option--off,
-.switch.is-on .switch__option--on {
-  color: var(--ink);
+  transform: translateX(18px);
 }
 
 .switch:focus {
