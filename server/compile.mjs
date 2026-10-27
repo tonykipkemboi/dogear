@@ -207,27 +207,83 @@ async function fetchMetadata(url) {
       typeof meta.thumbnail === 'string'
         ? meta.thumbnail
         : `https://i.ytimg.com/vi/${meta.id}/maxresdefault.jpg`,
+    subtitles: meta.subtitles && typeof meta.subtitles === 'object' ? meta.subtitles : {},
+    automatic_captions:
+      meta.automatic_captions && typeof meta.automatic_captions === 'object'
+        ? meta.automatic_captions
+        : {},
   }
 }
 
-async function fetchCaptions(url, tempDir) {
-  await execFileAsync(
-    'yt-dlp',
-    [
-      '--skip-download',
-      '--no-warnings',
-      '--write-auto-subs',
-      '--write-subs',
-      '--sub-langs',
-      'en',
-      '--sub-format',
-      'vtt',
-      '-o',
-      path.join(tempDir, '%(id)s.%(ext)s'),
-      url,
-    ],
-    { timeout: 120_000, maxBuffer: 8 * 1024 * 1024 },
-  )
+function findCaptionUrl(meta) {
+  const groups = [
+    meta.subtitles?.en,
+    meta.subtitles?.['en-US'],
+    meta.automatic_captions?.en,
+    meta.automatic_captions?.['en-orig'],
+  ]
+  for (const tracks of groups) {
+    if (!Array.isArray(tracks)) continue
+    const track = tracks.find(
+      (item) =>
+        item?.ext === 'vtt' &&
+        typeof item.url === 'string' &&
+        !item.url.includes('manifest.googlevideo.com'),
+    )
+    if (track?.url) return track.url
+  }
+  return null
+}
+
+async function fetchDirectCaptions(meta) {
+  const url = findCaptionUrl(meta)
+  if (!url) return null
+  try {
+    const response = await fetch(url, {
+      headers: {
+        'User-Agent':
+          'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36',
+        'Accept-Language': 'en-US,en;q=0.9',
+      },
+      signal: AbortSignal.timeout(30_000),
+    })
+    if (!response.ok) return null
+    const text = await response.text()
+    return text.includes('-->') ? text : null
+  } catch {
+    return null
+  }
+}
+
+async function fetchCaptions(url, tempDir, meta) {
+  const direct = await fetchDirectCaptions(meta)
+  if (direct) return direct
+
+  try {
+    await execFileAsync(
+      'yt-dlp',
+      [
+        '--skip-download',
+        '--no-warnings',
+        '--write-auto-subs',
+        '--write-subs',
+        '--sub-langs',
+        'en',
+        '--sub-format',
+        'vtt',
+        '-o',
+        path.join(tempDir, '%(id)s.%(ext)s'),
+        url,
+      ],
+      { timeout: 120_000, maxBuffer: 8 * 1024 * 1024 },
+    )
+  } catch (error) {
+    const detail = String(error?.stderr || error?.message || '')
+    if (detail.includes('429') || detail.toLowerCase().includes('too many requests')) {
+      throw new Error('YouTube is rate-limiting caption requests. Wait a few minutes and retry.')
+    }
+    throw new Error('Could not fetch the English captions for this video. Try another video.')
+  }
   const files = await readdir(tempDir)
   const vtt = files.find((file) => file.endsWith('.en.vtt')) ?? files.find((file) => file.endsWith('.vtt'))
   if (!vtt) throw new Error('No English captions were found for this video.')
@@ -242,7 +298,7 @@ export async function prepareYouTubeGuide(value) {
   try {
     const meta = await fetchMetadata(value)
     if (!meta.duration || meta.duration < 30) throw new Error('That video is too short to compile.')
-    const raw = await fetchCaptions(value, tempDir)
+    const raw = await fetchCaptions(value, tempDir, meta)
     const cues = parseVtt(raw)
     if (cues.length < 3) throw new Error('The captions did not contain enough text to compile.')
     return { videoId, guideId, meta, cues }
@@ -267,7 +323,7 @@ export async function compileYouTubeGuide(value) {
   try {
     const meta = await fetchMetadata(value)
     if (!meta.duration || meta.duration < 30) throw new Error('That video is too short to compile.')
-    const raw = await fetchCaptions(value, tempDir)
+    const raw = await fetchCaptions(value, tempDir, meta)
     const cues = parseVtt(raw)
     if (cues.length < 3) throw new Error('The captions did not contain enough text to compile.')
     const guide = buildTranscriptGuide({

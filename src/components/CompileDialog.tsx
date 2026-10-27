@@ -211,10 +211,12 @@ export function CompileDialog({
               <button type="button" className="button button--small button--ghost" onClick={retry}>
                 Adjust and retry
               </button>
-              <Link to="/settings" className="button button--small button--dark">
-                Open keys <ArrowRightIcon size={13} />
-              </Link>
-              <button type="button" className="button button--small button--ghost" onClick={onDemo}>
+              {error.toLowerCase().includes('key') || error.toLowerCase().includes('nebius') ? (
+                <Link to="/settings" className="button button--small button--dark">
+                  Open keys <ArrowRightIcon size={13} />
+                </Link>
+              ) : null}
+              <button type="button" className="button button--small button--dark" onClick={onDemo}>
                 Try the demo instead
               </button>
             </div>
