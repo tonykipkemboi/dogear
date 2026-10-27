@@ -27,6 +27,17 @@ test.describe('desktop', () => {
     await expect(createLinks.last()).toHaveAttribute('href', 'https://app.tavily.com/home')
   })
 
+  test('new videos ask for level and purpose before compiling', async ({ page }) => {
+    await page.goto('/')
+    await page.getByLabel('YouTube video link').fill('https://www.youtube.com/watch?v=dQw4w9WgXcQ')
+    await page.getByRole('button', { name: 'Compile' }).click()
+    await expect(page.locator('.compile-dialog')).toBeVisible()
+    await expect(page.getByLabel('Reading level')).toBeVisible()
+    await expect(page.getByLabel('What are you here for?')).toBeVisible()
+    await expect(page.getByRole('button', { name: /Compile guide/i })).toBeVisible()
+    await expect(page.locator('.compile-progress')).toHaveCount(0)
+  })
+
   test('home validates a URL and opens the seeded guide', async ({ page }) => {
     await page.goto('/')
     await expect(page.getByRole('heading', { name: /Paste a video/i })).toBeVisible()

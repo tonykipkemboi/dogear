@@ -4,6 +4,8 @@ import { ArrowRightIcon, CloseIcon } from './Icons'
 import { YouTubeMark } from './Marks'
 import { Link } from '../lib/router'
 import { parseYouTubeUrl } from '../lib/format'
+import { LEVELS, type Level } from '../data/guide'
+import { readLevel, readPrefs } from '../lib/storage'
 
 interface CompileResponse {
   guideId?: string
@@ -11,7 +13,14 @@ interface CompileResponse {
   error?: string
 }
 
-const STAGES = ['Fetching the transcript', 'Finding the chapters', 'Writing the guide']
+const STAGES = ['Fetching the transcript', 'Mapping the argument', 'Writing the guide']
+
+const PURPOSES = [
+  { id: 'understand', label: 'Understand the concept', lead: 'Build a clear mental model, with examples and the ideas that connect.' },
+  { id: 'interview', label: 'Prepare for an interview', lead: 'Focus on the claims, tradeoffs, and questions worth being ready for.' },
+  { id: 'build', label: 'Build something with it', lead: 'Turn the material into practical decisions, steps, and pitfalls.' },
+  { id: 'overview', label: 'Get a quick overview', lead: 'Keep the spine of the argument and leave out the detours.' },
+]
 
 export function CompileDialog({
   url,
@@ -24,13 +33,27 @@ export function CompileDialog({
   onReady: (guideId: string) => void
   onDemo: () => void
 }) {
+  const [started, setStarted] = useState(false)
+  const [level, setLevel] = useState<Level>(() => readLevel())
+  const [purpose, setPurpose] = useState('understand')
   const [progress, setProgress] = useState(6)
   const [stage, setStage] = useState(0)
   const [error, setError] = useState<string | null>(null)
   const [running, setRunning] = useState(false)
 
   useEffect(() => {
-    if (!url) return undefined
+    if (!url) return
+    setStarted(false)
+    setLevel(readLevel())
+    setPurpose('understand')
+    setProgress(6)
+    setStage(0)
+    setError(null)
+    setRunning(false)
+  }, [url])
+
+  useEffect(() => {
+    if (!url || !started) return undefined
     setProgress(8)
     setStage(0)
     setError(null)
@@ -48,7 +71,12 @@ export function CompileDialog({
     fetch('/api/compile', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ url }),
+      body: JSON.stringify({
+        url,
+        level,
+        purpose,
+        model: readPrefs().model,
+      }),
       signal: controller.signal,
     })
       .then(async (response) => {
@@ -73,68 +101,147 @@ export function CompileDialog({
       controller.abort()
       window.clearInterval(interval)
     }
-  }, [url, onReady])
+  }, [url, started, level, purpose, onReady])
 
   const videoId = url ? parseYouTubeUrl(url) : null
+  const purposeInfo = PURPOSES.find((item) => item.id === purpose) ?? PURPOSES[0]
+
+  const retry = () => {
+    setStarted(false)
+    setError(null)
+    setProgress(6)
+    setStage(0)
+  }
 
   return (
     <Dialog open={Boolean(url)} onClose={onClose} className="compile-dialog" labelledBy="compile-title">
       <div className="compile-dialog__head">
         <div className="compile-dialog__eyebrow">
           <span className="square-dot" aria-hidden="true" />
-          Compiling
+          {started ? 'Compiling' : 'New guide'}
         </div>
         <button type="button" className="icon-button" onClick={onClose} aria-label="Close compiler">
           <CloseIcon size={17} />
         </button>
       </div>
-      <h2 id="compile-title" className="compile-dialog__title">
-        Making the page.
-      </h2>
-      <p className="compile-dialog__lede">
-        We read the transcript, find the seams, and turn it into a page. The video stays the source.
-      </p>
-      {videoId ? (
-        <div className="compile-dialog__video">
-          <span className="compile-dialog__thumb">
-            <img src={`https://i.ytimg.com/vi/${videoId}/mqdefault.jpg`} alt="" />
-            <YouTubeMark size={20} />
-          </span>
-          <div>
-            <span className="compile-dialog__video-label">YouTube video</span>
-            <span className="compile-dialog__video-id">{videoId}</span>
+
+      {!started && !error ? (
+        <form
+          className="compile-setup"
+          onSubmit={(event) => {
+            event.preventDefault()
+            setStarted(true)
+          }}
+        >
+          <h2 id="compile-title" className="compile-dialog__title">
+            How should we write it?
+          </h2>
+          <p className="compile-dialog__lede">
+            Pick the depth and the reason you are watching. The guide will be written for that,
+            not just transcribed.
+          </p>
+
+          {videoId ? <CompileVideo id={videoId} /> : null}
+
+          <div className="compile-options">
+            <label className="compile-option" htmlFor="compile-level">
+              <span>Reading level</span>
+              <select
+                id="compile-level"
+                value={level}
+                onChange={(event) => setLevel(event.target.value as Level)}
+              >
+                {LEVELS.map((item) => (
+                  <option key={item.id} value={item.id}>
+                    {item.label} · {item.short}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label className="compile-option" htmlFor="compile-purpose">
+              <span>What are you here for?</span>
+              <select
+                id="compile-purpose"
+                value={purpose}
+                onChange={(event) => setPurpose(event.target.value)}
+              >
+                {PURPOSES.map((item) => (
+                  <option key={item.id} value={item.id}>
+                    {item.label}
+                  </option>
+                ))}
+              </select>
+            </label>
           </div>
-        </div>
-      ) : null}
-      <div className="compile-progress" aria-live="polite">
-        <div className="compile-progress__bar">
-          <span style={{ width: `${progress}%` }} />
-        </div>
-        <div className="compile-progress__meta">
-          <span>{error ? 'Stopped' : STAGES[stage]}</span>
-          <span>{Math.round(progress)}%</span>
-        </div>
-      </div>
-      {error ? (
-        <div className="compile-dialog__error" role="alert">
-          <strong>{error.toLowerCase().includes('key') ? 'That one needs a key.' : 'The compiler stopped.'}</strong>
-          <p>{error}</p>
-          <div className="compile-dialog__actions">
-            <Link to="/settings" className="button button--small button--dark">
-              Open keys <ArrowRightIcon size={13} />
-            </Link>
-            <button type="button" className="button button--small button--ghost" onClick={onDemo}>
-              Try the demo instead
+
+          <p className="compile-purpose-note">{purposeInfo.lead}</p>
+
+          <div className="compile-setup-foot">
+            <span className="compile-setup-note">Written by your Nebius model. The video stays the source.</span>
+            <button type="submit" className="button button--dark compile-start">
+              Compile guide <ArrowRightIcon size={15} />
             </button>
           </div>
-        </div>
+        </form>
       ) : (
-        <div className="compile-dialog__foot">
-          <span className="mono-label">{running ? 'Grounded in the transcript' : 'Finishing'}</span>
-          <span className="compile-dialog__foot-dot" aria-hidden="true" />
-          <span className="mono-label">Nebius Token Factory</span>
-        </div>
+        <>
+          <h2 id="compile-title" className="compile-dialog__title">
+            {error ? 'The compiler stopped.' : 'Making the page.'}
+          </h2>
+          <p className="compile-dialog__lede">
+            {error
+              ? error
+              : `Writing a ${level} guide for ${purposeInfo.label.toLowerCase()}. The video stays the source.`}
+          </p>
+
+          {videoId ? <CompileVideo id={videoId} /> : null}
+
+          <div className="compile-progress" aria-live="polite">
+            <div className="compile-progress__bar">
+              <span style={{ width: `${error ? 100 : progress}%` }} />
+            </div>
+            <div className="compile-progress__meta">
+              <span>{error ? 'Stopped' : STAGES[stage]}</span>
+              <span>{error ? 'Stopped' : `${Math.round(progress)}%`}</span>
+            </div>
+          </div>
+
+          {error ? (
+            <div className="compile-dialog__actions compile-dialog__error-actions">
+              <button type="button" className="button button--small button--ghost" onClick={retry}>
+                Adjust and retry
+              </button>
+              <Link to="/settings" className="button button--small button--dark">
+                Open keys <ArrowRightIcon size={13} />
+              </Link>
+              <button type="button" className="button button--small button--ghost" onClick={onDemo}>
+                Try the demo instead
+              </button>
+            </div>
+          ) : (
+            <div className="compile-dialog__foot">
+              <span className="mono-label">{running ? 'Grounded in the transcript' : 'Finishing'}</span>
+              <span className="compile-dialog__foot-dot" aria-hidden="true" />
+              <span className="mono-label">Nebius Token Factory</span>
+            </div>
+          )}
+        </>
       )}
     </Dialog>
+  )
+}
+
+function CompileVideo({ id }: { id: string }) {
+  return (
+    <div className="compile-dialog__video">
+      <span className="compile-dialog__thumb">
+        <img src={`https://i.ytimg.com/vi/${id}/mqdefault.jpg`} alt="" />
+        <YouTubeMark size={20} />
+      </span>
+      <div>
+        <span className="compile-dialog__video-label">YouTube video</span>
+        <span className="compile-dialog__video-id">{id}</span>
+      </div>
+    </div>
   )
 }

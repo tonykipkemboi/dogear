@@ -5,6 +5,10 @@ const LEVEL_KEY = 'dogear.level'
 const NOTES_KEY = 'dogear.notes'
 const RECENT_KEY = 'dogear.recent-highlights'
 
+function scopedRecentKey(guideId: string): string {
+  return `${RECENT_KEY}:${guideId}`
+}
+
 export interface SavedNote {
   id: string
   quote: string
@@ -63,21 +67,36 @@ export function clearNotes(): void {
   }
 }
 
-export function readRecentHighlights(fallback: RecentHighlight[]): RecentHighlight[] {
+export function readRecentHighlights(
+  fallback: RecentHighlight[],
+  guideId = 'ai-infrastructure',
+): RecentHighlight[] {
   try {
-    const raw = localStorage.getItem(RECENT_KEY)
-    if (raw === null) return fallback
-    const parsed: unknown = JSON.parse(raw)
-    return Array.isArray(parsed) ? (parsed as RecentHighlight[]) : fallback
+    const scoped = localStorage.getItem(scopedRecentKey(guideId))
+    if (scoped !== null) {
+      const parsed: unknown = JSON.parse(scoped)
+      return Array.isArray(parsed) ? (parsed as RecentHighlight[]) : fallback
+    }
+    // Preserve highlights created before storage was scoped, but only on the demo guide.
+    if (guideId === 'ai-infrastructure') {
+      const legacy = localStorage.getItem(RECENT_KEY)
+      if (legacy !== null) {
+        const parsed: unknown = JSON.parse(legacy)
+        if (Array.isArray(parsed)) return parsed as RecentHighlight[]
+      }
+    }
   } catch {
     // Fall back to the guide's editorial highlights.
   }
   return fallback
 }
 
-export function writeRecentHighlights(highlights: RecentHighlight[]): void {
+export function writeRecentHighlights(
+  highlights: RecentHighlight[],
+  guideId = 'ai-infrastructure',
+): void {
   try {
-    localStorage.setItem(RECENT_KEY, JSON.stringify(highlights.slice(0, 8)))
+    localStorage.setItem(scopedRecentKey(guideId), JSON.stringify(highlights.slice(0, 8)))
   } catch {
     // Recent highlights are optional.
   }

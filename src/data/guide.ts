@@ -94,6 +94,8 @@ export interface Guide {
   webSourceCount: number
   progress: number
   minutesLeft?: number
+  level?: Level
+  purpose?: string
   chapters: Chapter[]
   recentHighlights: RecentHighlight[]
   sources: Source[]
@@ -652,17 +654,11 @@ export const SEEDED_GUIDE: Guide = {
 }
 
 export function getChapter(guide: Guide, chapterId: string | null | undefined): Chapter {
-  return (
-    guide.chapters.find((chapter) => chapter.id === chapterId) ??
-    guide.chapters[Math.min(5, Math.max(0, guide.chapters.length - 1))]
-  )
+  return guide.chapters.find((chapter) => chapter.id === chapterId) ?? guide.chapters[0]
 }
 
 export function getChapterByNumber(guide: Guide, number: number): Chapter {
-  return (
-    guide.chapters.find((chapter) => chapter.number === number) ??
-    guide.chapters[Math.min(5, Math.max(0, guide.chapters.length - 1))]
-  )
+  return guide.chapters.find((chapter) => chapter.number === number) ?? guide.chapters[0]
 }
 
 export function getSource(sourceId: string): Source {

@@ -114,12 +114,17 @@ export async function searchWeb(query: string, model?: string): Promise<SearchRe
   )
 }
 
-export async function compile(url: string, level = 'ELI15', model?: string): Promise<CompileResponse> {
+export async function compile(
+  url: string,
+  level = 'ELI15',
+  purpose = 'understand',
+  model?: string,
+): Promise<CompileResponse> {
   return request<CompileResponse>(
     '/api/compile',
     {
       method: 'POST',
-      body: JSON.stringify({ url, level, model }),
+      body: JSON.stringify({ url, level, purpose, model }),
     },
     180_000,
   )

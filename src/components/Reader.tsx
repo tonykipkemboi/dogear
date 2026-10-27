@@ -69,7 +69,9 @@ export function Reader() {
   const [toolbar, setToolbar] = useState<ToolbarState | null>(null)
   const [toolbarMuted, setToolbarMuted] = useState(false)
   const [selectionAnchor, setSelectionAnchor] = useState<ToolbarState | null>(null)
-  const [recent, setRecent] = useState<RecentHighlight[]>(() => readRecentHighlights(guide.recentHighlights))
+  const [recent, setRecent] = useState<RecentHighlight[]>(() =>
+    readRecentHighlights(SEEDED_GUIDE.recentHighlights, SEEDED_GUIDE.id),
+  )
   const [messages, setMessages] = useState<PanelMessage[]>([])
   const [asking, setAsking] = useState(false)
   const [liveHighlight, setLiveHighlight] = useState<HighlightContent | null>(null)
@@ -129,7 +131,7 @@ export function Reader() {
   }, [guideId, notify])
 
   useEffect(() => {
-    setRecent(readRecentHighlights(guide.recentHighlights))
+    setRecent(readRecentHighlights(guide.recentHighlights, guide.id))
     setSources(guide.sources)
     setSourceId(guide.sources[0]?.id ?? 'vllm-prefix')
     setShowPanel(true)
@@ -139,6 +141,17 @@ export function Reader() {
   useEffect(() => {
     writeLevel(level)
   }, [level])
+
+  useEffect(() => {
+    if (guide.level) setLevel(guide.level)
+  }, [guide.id, guide.level])
+
+  useEffect(() => {
+    if (loading || !chapterId) return
+    if (!guide.chapters.some((item) => item.id === chapterId) && guide.chapters[0]) {
+      setSearchParam('chapter', guide.chapters[0].id, true)
+    }
+  }, [chapterId, guide, loading])
 
   const selectChapter = useCallback(
     (next: Chapter) => {
@@ -192,21 +205,21 @@ export function Reader() {
     }
     setRecent((current) => {
       const updated = [next, ...current.filter((item) => item.quote !== text)].slice(0, 8)
-      writeRecentHighlights(updated)
+      writeRecentHighlights(updated, guide.id)
       return updated
     })
-  }, [chapter.id, chapter.start])
+  }, [chapter.id, chapter.start, guide.id])
 
   const deleteRecent = useCallback(
     (highlight: RecentHighlight) => {
       setRecent((current) => {
         const updated = current.filter((item) => item.id !== highlight.id)
-        writeRecentHighlights(updated)
+        writeRecentHighlights(updated, guide.id)
         return updated
       })
       notify('Highlight removed.', 'success')
     },
-    [notify],
+    [notify, guide.id],
   )
 
   const applyAction = useCallback(

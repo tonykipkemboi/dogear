@@ -9,7 +9,7 @@ const execFileAsync = promisify(execFile)
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
 const LIBRARY_DIR = path.join(ROOT, 'data', 'library')
 
-function parseYouTubeId(value) {
+export function parseYouTubeId(value) {
   if (!value) return null
   try {
     const url = new URL(value.startsWith('http') ? value : `https://${value}`)
@@ -232,6 +232,23 @@ async function fetchCaptions(url, tempDir) {
   const vtt = files.find((file) => file.endsWith('.en.vtt')) ?? files.find((file) => file.endsWith('.vtt'))
   if (!vtt) throw new Error('No English captions were found for this video.')
   return readFile(path.join(tempDir, vtt), 'utf8')
+}
+
+export async function prepareYouTubeGuide(value) {
+  const videoId = parseYouTubeId(value)
+  if (!videoId) throw new Error('That is not a valid YouTube link.')
+  const guideId = `yt-${videoId.toLowerCase()}`
+  const tempDir = await mkdtemp(path.join(os.tmpdir(), 'dogear-compile-'))
+  try {
+    const meta = await fetchMetadata(value)
+    if (!meta.duration || meta.duration < 30) throw new Error('That video is too short to compile.')
+    const raw = await fetchCaptions(value, tempDir)
+    const cues = parseVtt(raw)
+    if (cues.length < 3) throw new Error('The captions did not contain enough text to compile.')
+    return { videoId, guideId, meta, cues }
+  } finally {
+    await rm(tempDir, { recursive: true, force: true })
+  }
 }
 
 export async function compileYouTubeGuide(value) {

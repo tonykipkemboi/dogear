@@ -17,8 +17,8 @@ A chaptered guide you can read at your level, search, and question.
 ![Node](https://img.shields.io/badge/Node-20%2B-161616?style=flat-square&logo=nodedotjs&logoColor=5FA04E)
 ![Nebius Token Factory](https://img.shields.io/badge/Nebius_Token_Factory-models-E9FF4F?style=flat-square&labelColor=161616)
 ![Tavily](https://img.shields.io/badge/Tavily-search-FAFAF7?style=flat-square&labelColor=161616)
-![Playwright](https://img.shields.io/badge/Playwright-17_flows-161616?style=flat-square&logo=playwright&logoColor=2EAD33)
-![Vitest](https://img.shields.io/badge/Vitest-20_tests-161616?style=flat-square&logo=vitest&logoColor=6E9F18)
+![Playwright](https://img.shields.io/badge/Playwright-18_flows-161616?style=flat-square&logo=playwright&logoColor=2EAD33)
+![Vitest](https://img.shields.io/badge/Vitest-23_tests-161616?style=flat-square&logo=vitest&logoColor=6E9F18)
 
 <sub>Private preview · local-first · bring your own keys</sub>
 
@@ -51,7 +51,7 @@ npm run dev
 
 Open [http://localhost:5173](http://localhost:5173).
 
-Use the built-in **AI Infrastructure Explained** guide to try the reader immediately, or paste a YouTube link to compile a new captioned video.
+Use the built-in **AI Infrastructure Explained** guide to try the reader immediately, or paste a YouTube link to compile a new captioned video. For a new video, choose a reading level and a purpose before compiling; the connected Nebius model writes the guide from the transcript.
 
 The seeded guide is built from [AI Infrastructure Explained](https://www.youtube.com/watch?v=hBzUokVYQkI) by KodeKloud.
 
@@ -77,7 +77,7 @@ TAVILY_API_KEY=...
 
 ## How it works
 
-1. **Paste or compile.** Add a YouTube link. Dogear reads the English captions and builds chapters with source timestamps.
+1. **Paste or compile.** Add a YouTube link, then choose your level and why you are watching. Dogear reads the captions and the connected model writes a chaptered guide with source timestamps.
 2. **Read and highlight.** The page is the primary surface. Highlights and notes live beside it, not in a chat box.
 3. **Pull the threads.** Ask for an explanation, check a claim against the web, or jump back to the exact moment in the video.
 
@@ -107,14 +107,14 @@ dogear/
 
 ## Verification
 
-- 20 unit tests
-- 17 Playwright flows covering desktop, tablet, mobile, inline playback, sources, keys, and the sidebar
+- 23 unit tests
+- 18 Playwright flows covering desktop, tablet, mobile, inline playback, sources, keys, and the sidebar
 - Production build and deep links verified
 - Live Tavily search verified
 
 ## Current limits
 
-- New video compile supports YouTube links with English captions. File upload and playlist compile are not wired yet.
+- New video compile supports YouTube links with English captions and requires a Nebius key. File upload and playlist compile are not wired yet.
 - Live Q&A needs a valid Nebius Token Factory key. Without one, answers come from the current chapter.
 - The demo source video stays on YouTube. The repo contains the thumbnail and concept frames, not the 730 MB source file.
 

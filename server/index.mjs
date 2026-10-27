@@ -6,7 +6,7 @@ import { chmod, mkdir, readFile, readdir, stat, writeFile } from 'node:fs/promis
 import { execFile } from 'node:child_process'
 import { fileURLToPath } from 'node:url'
 import { promisify } from 'node:util'
-import { compileYouTubeGuide } from './compile.mjs'
+import { parseYouTubeId, prepareYouTubeGuide } from './compile.mjs'
 
 const execFileAsync = promisify(execFile)
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
@@ -321,6 +321,278 @@ async function getModelCatalog() {
   }
 }
 
+const GUIDE_LEVELS = new Set(['ELI5', 'ELI15', 'Undergrad', 'Expert'])
+const GUIDE_PURPOSES = new Set(['understand', 'interview', 'build', 'overview'])
+
+const LEVEL_GUIDANCE = {
+  ELI5: 'Explain like the reader is five. Use concrete, everyday analogies and short sentences.',
+  ELI15: 'Explain for a curious adult. Define the terms that matter and keep the language plain.',
+  Undergrad: 'Explain for a technical reader. Be precise about mechanisms, constraints, and tradeoffs.',
+  Expert: 'Write for an expert. Skip basics, focus on architecture, edge cases, and the decisions that matter.',
+}
+
+const PURPOSE_GUIDANCE = {
+  understand: 'Build a clear mental model. Use examples and connect each idea to the bigger argument.',
+  interview: 'Focus on the claims, tradeoffs, and likely interview questions. Add an interview angle where useful.',
+  build: 'Turn the material into practical decisions, implementation steps, and pitfalls.',
+  overview: 'Keep the spine of the argument. Be concise and skip detours.',
+}
+
+function formatClock(seconds) {
+  const safe = Math.max(0, Math.floor(seconds))
+  return `${Math.floor(safe / 60)}:${String(safe % 60).padStart(2, '0')}`
+}
+
+function secondsFrom(value, fallback) {
+  if (typeof value === 'number' && Number.isFinite(value)) return value
+  if (typeof value === 'string') {
+    if (value.includes(':')) {
+      const parts = value.split(':').map(Number)
+      if (parts.every(Number.isFinite)) {
+        if (parts.length === 3) return parts[0] * 3600 + parts[1] * 60 + parts[2]
+        if (parts.length === 2) return parts[0] * 60 + parts[1]
+      }
+    }
+    const parsed = Number(value)
+    if (Number.isFinite(parsed)) return parsed
+  }
+  return fallback
+}
+
+function transcriptForModel(cues) {
+  const lines = []
+  let start = null
+  let parts = []
+  for (const cue of cues) {
+    if (start === null) start = cue.start
+    parts.push(cue.text)
+    if (cue.end - start >= 20 || parts.length >= 36) {
+      lines.push(`[${formatClock(start)}] ${parts.join(' ')}`)
+      start = null
+      parts = []
+    }
+  }
+  if (parts.length) lines.push(`[${formatClock(start ?? 0)}] ${parts.join(' ')}`)
+  return lines.join('\n')
+}
+
+function parseModelJson(text) {
+  const fenced = text.match(/```(?:json)?\s*([\s\S]*?)```/i)
+  const candidate = fenced ? fenced[1] : text
+  const start = candidate.indexOf('{')
+  const end = candidate.lastIndexOf('}')
+  if (start === -1 || end <= start) throw new Error('The model did not return a guide.')
+  try {
+    return JSON.parse(candidate.slice(start, end + 1))
+  } catch {
+    throw new Error('The model returned an unreadable guide. Try again.')
+  }
+}
+
+async function generateGuideJson({ model, level, purpose, meta, cues }) {
+  const stored = await getStoredKey('nebius')
+  if (!stored) throw new Error('Add a Nebius Token Factory key in Keys to compile a learning guide.')
+
+  const schema = `{
+  "deck": "One-sentence promise for the guide",
+  "chapters": [
+    {
+      "title": "Specific teaching title",
+      "short": "2 to 4 words",
+      "deck": "One-sentence chapter summary",
+      "start": 0,
+      "end": 120,
+      "keyPoints": ["Point one", "Point two"],
+      "blocks": [
+        {"type": "p", "text": "A short explanatory paragraph."},
+        {"type": "callout", "label": "What to remember", "text": "One sentence to keep."}
+      ]
+    }
+  ]
+}`
+
+  const system = [
+    'You are Dogear, an editor who turns video transcripts into learning guides.',
+    'Return only valid JSON. No markdown fences, no commentary, no em dashes.',
+    'Do not paste the transcript. Paraphrase, explain, and connect the ideas.',
+    'Every claim must be supported by the transcript. If the transcript is uncertain, say so.',
+    'Use the transcript timestamps to place chapter boundaries in seconds.',
+  ].join(' ')
+
+  const user = [
+    `Video: ${meta.title}`,
+    `Channel: ${meta.channel}`,
+    `Duration: ${formatClock(meta.duration)}`,
+    `Reading level: ${level}. ${LEVEL_GUIDANCE[level] || LEVEL_GUIDANCE.ELI15}`,
+    `Purpose: ${purpose}. ${PURPOSE_GUIDANCE[purpose] || PURPOSE_GUIDANCE.understand}`,
+    'Write 3 to 8 chapters. Each chapter needs 2 to 5 explanatory blocks and one callout.',
+    'Do not use generic titles like "Part 1". The guide should teach, not transcribe.',
+    `JSON schema: ${schema}`,
+    'Transcript:',
+    transcriptForModel(cues),
+  ].join('\n\n')
+
+  const response = await fetch('https://api.tokenfactory.nebius.com/v1/chat/completions', {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${stored.value}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      model,
+      messages: [
+        { role: 'system', content: system },
+        { role: 'user', content: user },
+      ],
+      temperature: 0.2,
+      max_tokens: 7000,
+    }),
+    signal: AbortSignal.timeout(120_000),
+  })
+
+  if (!response.ok) {
+    if (response.status === 401 || response.status === 403) {
+      throw new Error('Nebius rejected the key. Check it in Keys.')
+    }
+    throw new Error(`Nebius returned ${response.status}.`)
+  }
+  const data = await response.json()
+  const content = data?.choices?.[0]?.message?.content
+  if (typeof content !== 'string' || !content.trim()) throw new Error('Nebius returned an empty guide.')
+  return parseModelJson(content)
+}
+
+function normalizeGuideJson(parsed, prepared, level, purpose) {
+  const rawChapters = Array.isArray(parsed?.chapters) ? parsed.chapters : []
+  if (rawChapters.length < 2) throw new Error('The model did not return enough chapters.')
+  const duration = prepared.meta.duration
+  const step = duration / rawChapters.length
+  let chapters = rawChapters.map((raw, index) => {
+    const title = typeof raw?.title === 'string' ? raw.title.trim() : ''
+    const start = Math.max(0, Math.min(duration - 1, secondsFrom(raw?.start, index * step)))
+    const rawBlocks = Array.isArray(raw?.blocks) ? raw.blocks : []
+    const blocks = rawBlocks
+      .map((block) => {
+        if (typeof block === 'string') return { type: 'p', text: block.trim() }
+        if (!block || typeof block !== 'object') return null
+        const text = typeof block.text === 'string' ? block.text.trim() : ''
+        if (!text) return null
+        if (block.type === 'callout' || typeof block.label === 'string') {
+          return { type: 'callout', label: typeof block.label === 'string' ? block.label : 'What to remember', text }
+        }
+        return { type: 'p', text }
+      })
+      .filter(Boolean)
+    const keyPoints = Array.isArray(raw?.keyPoints)
+      ? raw.keyPoints.filter((point) => typeof point === 'string' && point.trim()).slice(0, 4)
+      : []
+    const words = blocks.reduce((total, block) => total + block.text.split(/\s+/).length, 0)
+    return {
+      title: title || `Chapter ${index + 1}`,
+      short: typeof raw?.short === 'string' && raw.short.trim() ? raw.short.trim().slice(0, 40) : `Chapter ${index + 1}`,
+      deck: typeof raw?.deck === 'string' ? raw.deck.trim() : '',
+      start,
+      end: secondsFrom(raw?.end, start + step),
+      keyPoints,
+      blocks,
+      words,
+    }
+  }).filter((chapter) => chapter.blocks.length > 0)
+
+  chapters.sort((a, b) => a.start - b.start)
+  if (chapters.length < 2) throw new Error('The model did not return enough usable chapters.')
+  chapters = chapters.map((chapter, index) => {
+    const next = chapters[index + 1]
+    const start = index === 0 ? Math.min(chapter.start, duration - 1) : chapter.start
+    const end = next ? Math.max(start + 5, next.start) : duration
+    return {
+      id: `chapter-${index + 1}`,
+      number: index + 1,
+      title: chapter.title,
+      short: chapter.short,
+      deck: chapter.deck,
+      start,
+      end: Math.min(duration, Math.max(start + 5, end)),
+      readMinutes: Math.max(1, Math.round(chapter.words / 220)),
+      diagramCount: 0,
+      keyPoints: chapter.keyPoints,
+      blocks: chapter.blocks,
+    }
+  })
+
+  const guideDeck = typeof parsed?.deck === 'string' && parsed.deck.trim()
+    ? parsed.deck.trim()
+    : chapters[0].deck
+  const watchUrl = `https://www.youtube.com/watch?v=${prepared.videoId}`
+  const readMinutes = chapters.reduce((total, chapter) => total + chapter.readMinutes, 0)
+
+  return {
+    id: prepared.guideId,
+    title: prepared.meta.title,
+    channel: prepared.meta.channel,
+    youtubeId: prepared.videoId,
+    thumbnail: prepared.meta.thumbnail,
+    duration,
+    chapterCount: chapters.length,
+    readMinutes,
+    diagramCount: 0,
+    webSourceCount: 1,
+    progress: 0.08,
+    minutesLeft: Math.max(1, Math.round(readMinutes * 0.92)),
+    level,
+    purpose,
+    chapters,
+    recentHighlights: [],
+    sources: [
+      {
+        id: 'youtube-transcript',
+        short: 'YouTube',
+        title: prepared.meta.title,
+        domain: 'youtube.com',
+        published: 'Live',
+        readTime: 'Video',
+        url: watchUrl,
+        usedFor: guideDeck,
+        extract: [guideDeck],
+        keyPoints: chapters[0].keyPoints,
+        more: [{ title: 'Open on YouTube', href: watchUrl }],
+        why: 'Compiled from the video transcript and written by your connected model.',
+        verified: true,
+      },
+    ],
+    accent: '#E9FF4F',
+  }
+}
+
+async function compileGuideWithNebius(value, { level, purpose, model }) {
+  const videoId = parseYouTubeId(value)
+  if (!videoId) throw new Error('That is not a valid YouTube link.')
+  const guideId = `yt-${videoId.toLowerCase()}`
+  try {
+    const cached = JSON.parse(await readFile(path.join(LIBRARY_DIR, `${guideId}.json`), 'utf8'))
+    if (cached.level === level && cached.purpose === purpose) return guideId
+  } catch {
+    // No usable cached guide.
+  }
+
+  const prepared = await prepareYouTubeGuide(value)
+  const settings = await readSettings()
+  const selectedModel = typeof model === 'string' && model ? model : settings.model
+  const parsed = await generateGuideJson({
+    model: selectedModel,
+    level,
+    purpose,
+    meta: prepared.meta,
+    cues: prepared.cues,
+  })
+  const guide = normalizeGuideJson(parsed, prepared, level, purpose)
+  await mkdir(LIBRARY_DIR, { recursive: true })
+  await writeFile(path.join(LIBRARY_DIR, `${guideId}.json`), `${JSON.stringify(guide, null, 2)}\n`, {
+    mode: 0o600,
+  })
+  return guideId
+}
+
 async function testNebius(key) {
   if (!key) return { ok: false, detail: 'No Nebius key is set.' }
   try {
@@ -573,14 +845,20 @@ async function handleApi(request, response, url) {
       sendJson(response, 200, { guideId: 'ai-infrastructure' })
       return
     }
+    const level = GUIDE_LEVELS.has(body.level) ? body.level : 'ELI15'
+    const purpose = GUIDE_PURPOSES.has(body.purpose) ? body.purpose : 'understand'
     try {
-      const guideId = await compileYouTubeGuide(value)
+      const guideId = await compileGuideWithNebius(value, {
+        level,
+        purpose,
+        model: body.model,
+      })
       sendJson(response, 200, { guideId })
     } catch (error) {
       sendError(
         response,
         422,
-        error instanceof Error ? error.message : 'The compiler could not read this video.',
+        error instanceof Error ? error.message : 'The compiler could not build this guide.',
       )
     }
     return

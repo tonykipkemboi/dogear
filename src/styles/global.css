@@ -3246,6 +3246,89 @@ select:focus-visible {
   color: var(--muted);
 }
 
+.compile-setup {
+  min-height: 0;
+  overflow-y: auto;
+  padding-right: 2px;
+}
+
+.compile-options {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin-top: 16px;
+}
+
+.compile-option {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.compile-option > span {
+  font-family: var(--font-mono);
+  font-size: 8px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.compile-option select {
+  width: 100%;
+  height: 42px;
+  padding: 0 30px 0 11px;
+  border: 1px solid var(--hairline);
+  border-radius: 8px;
+  outline: none;
+  appearance: none;
+  background: var(--paper)
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' fill='none'%3E%3Cpath d='m1 1 4 4 4-4' stroke='%236E6E6A' stroke-width='1.2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E")
+    no-repeat right 11px center;
+  color: var(--ink);
+  font-family: var(--font-sans);
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.compile-option select:focus {
+  border-color: var(--ink);
+}
+
+.compile-purpose-note {
+  min-height: 16px;
+  margin-top: 9px;
+  font-size: 10px;
+  line-height: 1.45;
+  color: var(--graphite);
+}
+
+.compile-setup-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-top: 16px;
+  padding-top: 13px;
+  border-top: 1px solid var(--hairline);
+}
+
+.compile-setup-note {
+  font-size: 9px;
+  line-height: 1.45;
+  color: var(--muted);
+}
+
+.compile-start {
+  flex: none;
+  height: 40px;
+  padding: 0 15px;
+}
+
+.compile-dialog__error-actions {
+  justify-content: flex-end;
+  margin-top: 16px;
+}
+
 .compile-progress {
   margin-top: 20px;
 }
@@ -5071,6 +5154,31 @@ select:focus-visible {
 
   .compile-dialog__title {
     font-size: 36px;
+  }
+
+  .compile-options {
+    grid-template-columns: 1fr;
+  }
+
+  .compile-setup-foot {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .compile-setup-note {
+    order: 2;
+  }
+
+  .compile-start {
+    width: 100%;
+  }
+
+  .compile-dialog__error-actions {
+    justify-content: stretch;
+  }
+
+  .compile-dialog__error-actions .button {
+    flex: 1;
   }
 
   .sheet-head {
