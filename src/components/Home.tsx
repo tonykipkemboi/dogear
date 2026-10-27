@@ -57,7 +57,7 @@ export function Home() {
             <h1 id="hero-title" className="hero__title">
               Paste a video.
               <br />
-              <span className="hero__mark">Learn</span> it.
+              <span className="hero__mark">Learn</span> from it.
             </h1>
             <p className="hero__lede">A chaptered guide you can read at your level, search, and question.</p>
             <form className="url-form" onSubmit={handleSubmit} noValidate>

@@ -40,7 +40,7 @@ test.describe('desktop', () => {
 
   test('home validates a URL and opens the seeded guide', async ({ page }) => {
     await page.goto('/')
-    await expect(page.getByRole('heading', { name: /Paste a video/i })).toBeVisible()
+    await expect(page.getByRole('heading', { name: /Paste a video\. Learn from it\./i })).toBeVisible()
     const input = page.getByLabel('YouTube video link')
     await input.fill('not a link')
     await page.getByRole('button', { name: 'Compile' }).click()

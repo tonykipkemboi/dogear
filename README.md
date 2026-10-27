@@ -5,7 +5,7 @@
   <img src="./public/readme/dogear-lockup-light.png" alt="Dogear" width="220">
 </picture>
 
-### Paste a video. Learn it.
+### Paste a video. Learn from it.
 
 A chaptered guide you can read at your level, search, and question.
 
