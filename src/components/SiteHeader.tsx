@@ -11,6 +11,9 @@ export function SiteHeader() {
       <div className="site-header__inner">
         <Brand height={30} />
         <nav className="site-header__nav" aria-label="Main">
+          <Link to="/settings" className="site-header__keys-link">
+            Keys
+          </Link>
           <a href={GITHUB_URL} target="_blank" rel="noreferrer">
             GitHub <ArrowUpRightIcon size={12} />
           </a>

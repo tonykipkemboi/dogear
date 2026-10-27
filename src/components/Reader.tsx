@@ -10,9 +10,9 @@ import {
   readNotes,
   readPrefs,
   readRecentHighlights,
+  writeRecentHighlights,
   addNote,
   downloadNotes,
-  pushRecentHighlight,
   writeLevel,
   type SavedNote,
 } from '../lib/storage'
@@ -182,9 +182,24 @@ export function Reader() {
       chapterId: chapter.id,
       seconds: chapter.start,
     }
-    setRecent((current) => [next, ...current.filter((item) => item.quote !== text)].slice(0, 8))
-    pushRecentHighlight(next)
+    setRecent((current) => {
+      const updated = [next, ...current.filter((item) => item.quote !== text)].slice(0, 8)
+      writeRecentHighlights(updated)
+      return updated
+    })
   }, [chapter.id, chapter.start])
+
+  const deleteRecent = useCallback(
+    (highlight: RecentHighlight) => {
+      setRecent((current) => {
+        const updated = current.filter((item) => item.id !== highlight.id)
+        writeRecentHighlights(updated)
+        return updated
+      })
+      notify('Highlight removed.', 'success')
+    },
+    [notify],
+  )
 
   const applyAction = useCallback(
     (nextAction: HighlightAction) => {
@@ -435,6 +450,7 @@ export function Reader() {
       onChangeLevel={setLevel}
       onClose={onClose}
       onPickHighlight={pickHighlight}
+      onDeleteHighlight={deleteRecent}
       onEmptyAction={emptyAction}
       onOpenSource={openSource}
       onSearchWeb={handleSearchWeb}

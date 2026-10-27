@@ -340,6 +340,14 @@ select:focus-visible {
   margin-left: auto;
 }
 
+.site-header__keys-link {
+  color: var(--graphite);
+}
+
+.site-header__keys-link:hover {
+  color: var(--ink);
+}
+
 .site-header__mobile-keys {
   display: none;
 }
@@ -599,6 +607,16 @@ select:focus-visible {
   text-transform: uppercase;
 }
 
+.url-form__open-source a {
+  border-bottom: 1px solid var(--hairline-strong);
+  color: var(--graphite);
+}
+
+.url-form__open-source a:hover {
+  color: var(--ink);
+  border-bottom-color: var(--ink);
+}
+
 .url-form__error {
   margin-top: 8px;
   font-size: 12px;
@@ -835,6 +853,41 @@ select:focus-visible {
   align-items: center;
   gap: 14px;
   flex: none;
+}
+
+.reader-keys-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  height: 30px;
+  padding: 0 9px;
+  border: 1px solid var(--hairline);
+  border-radius: 999px;
+  background: var(--paper);
+  font-size: 10px;
+  color: var(--graphite);
+  text-decoration: none;
+}
+
+.reader-keys-link:hover {
+  border-color: var(--hairline-strong);
+  color: var(--ink);
+}
+
+.reader-header__keys-mobile {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  border: 1px solid var(--hairline);
+  border-radius: 50%;
+  color: var(--graphite);
+}
+
+.reader-header__keys-mobile:hover {
+  color: var(--ink);
+  border-color: var(--hairline-strong);
 }
 
 .highlights-toggle {
@@ -2148,16 +2201,47 @@ select:focus-visible {
   color: var(--muted);
 }
 
+.recent-highlight-row {
+  display: flex;
+  align-items: stretch;
+  border-bottom: 1px solid var(--hairline);
+}
+
 .recent-highlight {
   display: flex;
   gap: 8px;
   width: 100%;
-  padding: 10px 0;
+  padding: 10px 4px 10px 0;
   border: 0;
-  border-bottom: 1px solid var(--hairline);
   background: none;
   text-align: left;
   cursor: pointer;
+}
+
+.recent-highlight-row .recent-highlight {
+  flex: 1;
+  min-width: 0;
+  border-bottom: 0;
+}
+
+.recent-highlight__delete {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  flex: none;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--muted);
+  opacity: 0.55;
+  cursor: pointer;
+}
+
+.recent-highlight__delete:hover,
+.recent-highlight__delete:focus-visible {
+  color: var(--danger);
+  opacity: 1;
 }
 
 .recent-highlight:hover .recent-highlight__copy > span:first-child {

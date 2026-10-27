@@ -11,6 +11,7 @@ const TITLES: Record<string, string> = {
   '/': 'Dogear | Paste a video. Learn it.',
   '/library': 'Library | Dogear',
   '/settings': 'Keys | Dogear',
+  '/keys': 'Keys | Dogear',
 }
 
 export default function App() {
@@ -38,7 +39,7 @@ export default function App() {
   let content
   if (pathname === '/') content = <Home />
   else if (pathname.startsWith('/read/')) content = <Reader key={pathname} />
-  else if (pathname === '/settings') content = <Keys />
+  else if (pathname === '/settings' || pathname === '/keys') content = <Keys />
   else if (pathname === '/library') content = <Library />
   else content = <NotFound />
 

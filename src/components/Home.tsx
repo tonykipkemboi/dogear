@@ -4,7 +4,7 @@ import { MobileTabBar } from './MobileTabBar'
 import { SiteFooter, SiteHeader } from './SiteHeader'
 import { ArrowRightIcon } from './Icons'
 import { YouTubeMark } from './Marks'
-import { navigate } from '../lib/router'
+import { Link, navigate } from '../lib/router'
 import { formatTime, parseYouTubeUrl } from '../lib/format'
 import { SEEDED_GUIDE } from '../data/guide'
 
@@ -94,7 +94,9 @@ export function Home() {
                   </button>
                   .
                 </span>
-                <span className="url-form__open-source">Open source · bring your key</span>
+                <span className="url-form__open-source">
+                  Open source · <Link to="/settings">bring your key</Link>
+                </span>
               </div>
               <input
                 ref={fileInput}

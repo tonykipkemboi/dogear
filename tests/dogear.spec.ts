@@ -10,6 +10,16 @@ test.describe('desktop', () => {
     await expect(page.getByRole('link', { name: 'How it works' })).toHaveCount(0)
   })
 
+  test('keys page is reachable from home and the reader', async ({ page }) => {
+    await page.goto('/')
+    await page.getByRole('link', { name: 'Keys' }).first().click()
+    await expect(page).toHaveURL(/\/settings$/)
+    await expect(page.getByRole('heading', { name: 'Bring your own keys.' })).toBeVisible()
+    await expect(page.getByLabel('API key').first()).toBeVisible()
+    await page.goto('/keys')
+    await expect(page.getByRole('heading', { name: 'Bring your own keys.' })).toBeVisible()
+  })
+
   test('home validates a URL and opens the seeded guide', async ({ page }) => {
     await page.goto('/')
     await expect(page.getByRole('heading', { name: /Paste a video/i })).toBeVisible()
@@ -51,6 +61,21 @@ test.describe('desktop', () => {
     await expect(page.locator('.contents-rail')).toHaveCount(0)
     await expect(page.locator('.highlights-aside')).toHaveCount(0)
     await expect(page.locator('.reader-main__mini')).toBeVisible()
+  })
+
+  test('deletes a recent highlight and keeps it deleted after reload', async ({ page }) => {
+    await page.goto('/read/ai-infrastructure?chapter=kv-cache')
+    const rows = page.locator('.highlights-aside .recent-highlight-row')
+    await expect(rows).toHaveCount(2)
+    await page.locator('.highlights-aside .recent-highlight__delete').first().click()
+    await expect(rows).toHaveCount(1)
+    await page.reload()
+    await expect(page.locator('.highlights-aside .recent-highlight-row')).toHaveCount(1)
+
+    await page.locator('.highlights-aside .recent-highlight__delete').first().click()
+    await expect(page.locator('.highlights-aside .recent-highlight-row')).toHaveCount(0)
+    await page.reload()
+    await expect(page.locator('.highlights-aside .recent-highlight-row')).toHaveCount(0)
   })
 
   test('concept frames come from the video and play from their timestamp', async ({ page }) => {
@@ -104,7 +129,7 @@ test.describe('desktop', () => {
     await page.goto('/settings')
     const inputs = page.locator('.key-field input')
     await expect(inputs.first()).toHaveValue('')
-    await expect(page.locator('.key-field__show').first()).toBeDisabled()
+    await expect(inputs.first()).toHaveAttribute('type', 'password')
   })
 })
 

@@ -167,7 +167,7 @@ export function Keys() {
                 type={showNebius ? 'text' : 'password'}
                 value={nebius}
                 onChange={(event) => setNebius(event.target.value)}
-                placeholder={status?.nebius ? 'Stored in Keychain' : 'nbs_…'}
+                placeholder={status?.nebius ? 'Stored in Keychain. Type to replace.' : 'nbs_…'}
                 autoComplete="off"
                 spellCheck={false}
                 aria-describedby="nebius-key-help"
@@ -175,11 +175,25 @@ export function Keys() {
               <button
                 type="button"
                 className="key-field__show"
-                onClick={() => setShowNebius((current) => !current)}
-                disabled={!nebius}
-                title={!nebius ? 'The stored key cannot be revealed from the app.' : undefined}
+                onClick={() => {
+                  if (!nebius && status?.nebius) {
+                    document.getElementById('nebius-key')?.focus()
+                    return
+                  }
+                  setShowNebius((current) => !current)
+                }}
+                disabled={!nebius && !status?.nebius}
+                title={
+                  !nebius && status?.nebius
+                    ? 'Type a new key here to replace the stored one.'
+                    : !nebius
+                      ? 'Enter a key first.'
+                      : showNebius
+                        ? 'Hide the key while typing.'
+                        : 'Show the key while typing.'
+                }
               >
-                {showNebius && nebius ? 'Hide' : 'Show'}
+                {nebius ? (showNebius ? 'Hide' : 'Show') : status?.nebius ? 'Replace' : 'Show'}
               </button>
             </div>
             <div className="field-foot" id="nebius-key-help">
@@ -247,7 +261,7 @@ export function Keys() {
                 type={showTavily ? 'text' : 'password'}
                 value={tavily}
                 onChange={(event) => setTavily(event.target.value)}
-                placeholder={status?.tavily ? 'Stored in Keychain' : 'tvly-…'}
+                placeholder={status?.tavily ? 'Stored in Keychain. Type to replace.' : 'tvly-…'}
                 autoComplete="off"
                 spellCheck={false}
                 aria-describedby="tavily-key-help"
@@ -255,11 +269,25 @@ export function Keys() {
               <button
                 type="button"
                 className="key-field__show"
-                onClick={() => setShowTavily((current) => !current)}
-                disabled={!tavily}
-                title={!tavily ? 'The stored key cannot be revealed from the app.' : undefined}
+                onClick={() => {
+                  if (!tavily && status?.tavily) {
+                    document.getElementById('tavily-key')?.focus()
+                    return
+                  }
+                  setShowTavily((current) => !current)
+                }}
+                disabled={!tavily && !status?.tavily}
+                title={
+                  !tavily && status?.tavily
+                    ? 'Type a new key here to replace the stored one.'
+                    : !tavily
+                      ? 'Enter a key first.'
+                      : showTavily
+                        ? 'Hide the key while typing.'
+                        : 'Show the key while typing.'
+                }
               >
-                {showTavily && tavily ? 'Hide' : 'Show'}
+                {tavily ? (showTavily ? 'Hide' : 'Show') : status?.tavily ? 'Replace' : 'Show'}
               </button>
             </div>
             <div className="field-foot" id="tavily-key-help">

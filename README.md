@@ -17,7 +17,7 @@ A chaptered guide you can read at your level, search, and question.
 ![Node](https://img.shields.io/badge/Node-20%2B-161616?style=flat-square&logo=nodedotjs&logoColor=5FA04E)
 ![Nebius Token Factory](https://img.shields.io/badge/Nebius_Token_Factory-models-E9FF4F?style=flat-square&labelColor=161616)
 ![Tavily](https://img.shields.io/badge/Tavily-search-FAFAF7?style=flat-square&labelColor=161616)
-![Playwright](https://img.shields.io/badge/Playwright-13_flows-161616?style=flat-square&logo=playwright&logoColor=2EAD33)
+![Playwright](https://img.shields.io/badge/Playwright-15_flows-161616?style=flat-square&logo=playwright&logoColor=2EAD33)
 ![Vitest](https://img.shields.io/badge/Vitest-19_tests-161616?style=flat-square&logo=vitest&logoColor=6E9F18)
 
 <sub>Private preview · local-first · bring your own keys</sub>
@@ -34,6 +34,7 @@ Dogear turns long videos into a reading page. The video stays the source: every 
 
 - **Real frames, not invented diagrams.** Concept figures are pulled from the video and play inline from their timestamp.
 - **Highlights that keep up.** Select a sentence, then explain it, simplify it, see an example, or check the source.
+- **Curate your list.** Remove recent highlights you no longer want. The change survives a reload.
 - **Sources you can verify.** Tavily results open in a focused source view with the excerpt, key points, and original link.
 - **Video where you need it.** Playback happens in place by default. Expand is there when you want the big screen.
 - **Your keys, your machine.** Keys are stored in the macOS Keychain and never returned to the browser.
@@ -63,7 +64,7 @@ The seeded guide is built from [AI Infrastructure Explained](https://www.youtube
 
 ## Keys
 
-Dogear is bring-your-own-key. Open **Keys** in the app to add a Nebius Token Factory key and, optionally, a Tavily key.
+Dogear is bring-your-own-key. Open **Keys** from the header, the mobile tab bar, the reader header, or directly at [`/settings`](http://localhost:5173/settings) or `/keys` to add a Nebius Token Factory key and, optionally, a Tavily key.
 
 On macOS, both are written to the Keychain through the local API. The browser only receives whether a key is configured. Stored keys cannot be revealed from the app. The server binds to `127.0.0.1` and never writes keys to logs or source files.
 
@@ -107,7 +108,7 @@ dogear/
 ## Verification
 
 - 19 unit tests
-- 13 Playwright flows covering desktop, tablet, mobile, inline playback, sources, keys, and the sidebar
+- 15 Playwright flows covering desktop, tablet, mobile, inline playback, sources, keys, and the sidebar
 - Production build and deep links verified
 - Live Tavily search verified
 

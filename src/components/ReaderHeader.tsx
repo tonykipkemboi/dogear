@@ -1,7 +1,7 @@
 import type { Chapter, Guide } from '../data/guide'
 import { Brand } from './Brand'
 import { PoweredBy, YouTubeMark } from './Marks'
-import { ChevronLeftIcon, PanelIcon } from './Icons'
+import { ChevronLeftIcon, KeyIcon, PanelIcon } from './Icons'
 import { Link } from '../lib/router'
 
 export function ReaderHeader({
@@ -44,6 +44,10 @@ export function ReaderHeader({
               Highlights
             </button>
           ) : null}
+          <Link to="/settings" className="reader-keys-link" aria-label="Open keys" title="Keys">
+            <KeyIcon size={12} />
+            Keys
+          </Link>
           <button
             type="button"
             className={`read-view-button ${readView ? 'is-active' : ''}`}
@@ -72,6 +76,9 @@ export function ReaderHeader({
           </div>
         </div>
         <div className="reader-header__mobile-right">
+          <Link to="/settings" className="reader-header__keys-mobile" aria-label="Open keys" title="Keys">
+            <KeyIcon size={14} />
+          </Link>
           <span className="reader-header__count">
             {String(chapter.number).padStart(2, '0')} / {guide.chapterCount}
           </span>

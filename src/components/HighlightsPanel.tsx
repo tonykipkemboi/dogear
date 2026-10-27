@@ -34,6 +34,7 @@ interface HighlightsPanelProps {
   onChangeLevel: (level: Level) => void
   onClose: () => void
   onPickHighlight: (highlight: RecentHighlight, action?: HighlightAction) => void
+  onDeleteHighlight: (highlight: RecentHighlight) => void
   onEmptyAction: (action: HighlightAction) => void
   onOpenSource: (sourceId: string) => void
   onSearchWeb: () => void
@@ -60,6 +61,7 @@ export function HighlightsPanel({
   onChangeLevel,
   onClose,
   onPickHighlight,
+  onDeleteHighlight,
   onEmptyAction,
   onOpenSource,
   onSearchWeb,
@@ -181,18 +183,12 @@ export function HighlightsPanel({
                   {recent
                     .filter((item) => item.quote !== quote)
                     .map((highlight) => (
-                      <button
+                      <RecentHighlightRow
                         key={highlight.id}
-                        type="button"
-                        className="recent-highlight"
-                        onClick={() => onPickHighlight(highlight)}
-                      >
-                        <span className="recent-highlight__bar" aria-hidden="true" />
-                        <span className="recent-highlight__copy">
-                          <span>“{highlight.quote}”</span>
-                          <span>▶ {formatTime(highlight.seconds)}</span>
-                        </span>
-                      </button>
+                        highlight={highlight}
+                        onPick={() => onPickHighlight(highlight)}
+                        onDelete={() => onDeleteHighlight(highlight)}
+                      />
                     ))}
                 </div>
               ) : null}
@@ -253,18 +249,12 @@ export function HighlightsPanel({
               <div className="recent-highlights">
                 <span className="recent-highlights__label">Recent highlights</span>
                 {recent.map((highlight) => (
-                <button
-                  key={highlight.id}
-                  type="button"
-                  className="recent-highlight"
-                  onClick={() => onPickHighlight(highlight)}
-                >
-                  <span className="recent-highlight__bar" aria-hidden="true" />
-                  <span className="recent-highlight__copy">
-                    <span>“{highlight.quote}”</span>
-                    <span>▶ {formatTime(highlight.seconds)}</span>
-                  </span>
-                  </button>
+                  <RecentHighlightRow
+                    key={highlight.id}
+                    highlight={highlight}
+                    onPick={() => onPickHighlight(highlight)}
+                    onDelete={() => onDeleteHighlight(highlight)}
+                  />
                 ))}
               </div>
             ) : null}
@@ -309,6 +299,38 @@ export function HighlightsPanel({
           {asking ? <span className="ask-form__spinner" /> : <SendIcon size={13} />}
         </button>
       </form>
+    </div>
+  )
+}
+
+function RecentHighlightRow({
+  highlight,
+  onPick,
+  onDelete,
+}: {
+  highlight: RecentHighlight
+  onPick: () => void
+  onDelete: () => void
+}) {
+  const label = highlight.quote.length > 42 ? `${highlight.quote.slice(0, 42)}…` : highlight.quote
+  return (
+    <div className="recent-highlight-row">
+      <button type="button" className="recent-highlight" onClick={onPick}>
+        <span className="recent-highlight__bar" aria-hidden="true" />
+        <span className="recent-highlight__copy">
+          <span>“{highlight.quote}”</span>
+          <span>▶ {formatTime(highlight.seconds)}</span>
+        </span>
+      </button>
+      <button
+        type="button"
+        className="recent-highlight__delete"
+        onClick={onDelete}
+        aria-label={`Delete highlight: ${label}`}
+        title="Remove highlight"
+      >
+        <CloseIcon size={10} />
+      </button>
     </div>
   )
 }

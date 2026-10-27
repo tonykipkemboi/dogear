@@ -65,19 +65,19 @@ export function clearNotes(): void {
 
 export function readRecentHighlights(fallback: RecentHighlight[]): RecentHighlight[] {
   try {
-    const parsed: unknown = JSON.parse(localStorage.getItem(RECENT_KEY) ?? 'null')
-    if (Array.isArray(parsed) && parsed.length > 0) return parsed as RecentHighlight[]
+    const raw = localStorage.getItem(RECENT_KEY)
+    if (raw === null) return fallback
+    const parsed: unknown = JSON.parse(raw)
+    return Array.isArray(parsed) ? (parsed as RecentHighlight[]) : fallback
   } catch {
     // Fall back to the guide's editorial highlights.
   }
   return fallback
 }
 
-export function pushRecentHighlight(highlight: RecentHighlight): void {
+export function writeRecentHighlights(highlights: RecentHighlight[]): void {
   try {
-    const current = readRecentHighlights([])
-    const next = [highlight, ...current.filter((item) => item.quote !== highlight.quote)].slice(0, 8)
-    localStorage.setItem(RECENT_KEY, JSON.stringify(next))
+    localStorage.setItem(RECENT_KEY, JSON.stringify(highlights.slice(0, 8)))
   } catch {
     // Recent highlights are optional.
   }
