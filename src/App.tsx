@@ -8,7 +8,7 @@ import { ToastProvider } from './components/Toast'
 import { useLocation, usePathname } from './lib/router'
 
 const TITLES: Record<string, string> = {
-  '/': 'Dogear | Paste a video. Learn it.',
+  '/': 'Dogear | Paste a video. Learn from it.',
   '/library': 'Library | Dogear',
   '/settings': 'Keys | Dogear',
   '/keys': 'Keys | Dogear',
