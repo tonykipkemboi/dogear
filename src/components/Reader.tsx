@@ -220,7 +220,15 @@ export function Reader() {
       setQuote(nextQuote)
       setSelectionAnchor(null)
       setMessages([])
-      if (mobile) setSheetOpen(true)
+      if (mobile) {
+        setSheetOpen(true)
+      } else {
+        window.setTimeout(() => {
+          document
+            .querySelector<HTMLElement>('.article [data-active-quote]')
+            ?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+        }, 70)
+      }
     },
     [mobile],
   )

@@ -53,6 +53,19 @@ test.describe('desktop', () => {
     await expect(page.locator('.reader-main__mini')).toBeVisible()
   })
 
+  test('concept frames come from the video and play from their timestamp', async ({ page }) => {
+    await page.goto('/read/ai-infrastructure?chapter=kv-cache')
+    const frame = page.locator('.video-frame').first()
+    await expect(frame).toBeVisible()
+    await expect(frame.locator('img')).toHaveAttribute('src', /\/frames\//)
+    await expect(frame.locator('.video-frame__watch')).toContainText('Watch from')
+    await frame.locator('.video-frame__button').click()
+    await expect(page.locator('.video-player iframe')).toBeVisible()
+    await expect(page.locator('.video-dialog')).toHaveCount(0)
+    await page.locator('.video-inline__close').click()
+    await expect(page.locator('.video-player iframe')).toHaveCount(0)
+  })
+
   test('video plays in place and the highlights sidebar closes and reopens', async ({ page }) => {
     await page.goto('/read/ai-infrastructure?chapter=kv-cache')
     await page.locator('.video-player__hit').click()

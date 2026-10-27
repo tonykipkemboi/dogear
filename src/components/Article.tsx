@@ -1,6 +1,7 @@
 import { useRef, type SyntheticEvent } from 'react'
 import type { Block, Chapter, Guide } from '../data/guide'
 import { PlayIcon } from './Icons'
+import { YouTubeMark } from './Marks'
 import { findQuote, formatTime, normalizeQuote } from '../lib/format'
 
 export interface SelectionAnchor {
@@ -24,6 +25,7 @@ export function Article({
   onPlay: (seconds: number) => void
 }) {
   const articleRef = useRef<HTMLElement>(null)
+  const frameCount = chapter.blocks.filter((block) => block.type === 'frame').length
 
   const capture = () => {
     const selection = window.getSelection()
@@ -81,10 +83,18 @@ export function Article({
         <p className="article__deck">{chapter.deck}</p>
         <div className="article__details">
           <span>{chapter.readMinutes} min read</span>
+          {frameCount > 0 ? (
+            <>
+              <span className="meta-dot" aria-hidden="true" />
+              <span>
+                {frameCount} video {frameCount === 1 ? 'frame' : 'frames'}
+              </span>
+            </>
+          ) : null}
           <span className="meta-dot" aria-hidden="true" />
-          <span>{chapter.diagramCount} diagrams</span>
-          <span className="meta-dot" aria-hidden="true" />
-          <span>{guide.webSourceCount} web source</span>
+          <span>
+            {guide.webSourceCount} web {guide.webSourceCount === 1 ? 'source' : 'sources'}
+          </span>
         </div>
       </header>
 
@@ -150,8 +160,8 @@ function BlockView({
     )
   }
 
-  if (block.type === 'diagram') {
-    return <PrefillDecodeDiagram />
+  if (block.type === 'frame') {
+    return <VideoFrame block={block} onPlay={onPlay} />
   }
 
   if (block.type === 'caption') {
@@ -196,60 +206,41 @@ function renderHighlighted(text: string, quote: string) {
   )
 }
 
-export function PrefillDecodeDiagram() {
-  const grid = Array.from({ length: 16 })
-
+export function VideoFrame({
+  block,
+  onPlay,
+}: {
+  block: Extract<Block, { type: 'frame' }>
+  onPlay: (seconds: number) => void
+}) {
   return (
-    <figure className="phase-diagram">
-      <div className="phase-diagram__panel">
-        <div className="phase-diagram__head">
-          <span>Prefill</span>
-          <span>1 pass</span>
-        </div>
-        <div className="phase-diagram__visual phase-diagram__visual--prefill">
-          <div className="phase-diagram__bars" aria-hidden="true">
-            <span />
-            <span />
-            <span />
-          </div>
-          <div className="phase-diagram__grid" aria-hidden="true">
-            {grid.map((_, index) => (
-              <span key={index} />
-            ))}
-          </div>
-        </div>
-        <p>
-          Reads the whole prompt. <span>Compute-bound.</span>
-        </p>
-        <span className="phase-diagram__badge phase-diagram__badge--lime">
-          TTFT <span>time to first token</span>
+    <figure className="video-frame">
+      <button
+        type="button"
+        className="video-frame__button"
+        onClick={() => onPlay(block.timestamp.seconds)}
+        aria-label={`Watch the video from ${formatTime(block.timestamp.seconds)}`}
+      >
+        <img src={block.src} alt={block.alt} loading="lazy" />
+        <span className="video-frame__shade" aria-hidden="true" />
+        <span className="video-frame__play" aria-hidden="true">
+          <PlayIcon size={16} />
         </span>
-      </div>
-
-      <span className="phase-diagram__split" aria-hidden="true" />
-
-      <div className="phase-diagram__panel">
-        <div className="phase-diagram__head">
-          <span>Decode</span>
-          <span>1 token / pass</span>
-        </div>
-        <div className="phase-diagram__visual phase-diagram__visual--decode">
-          <div className="phase-diagram__tokens" aria-hidden="true">
-            <span>N</span>
-            <span>N</span>
-            <span>N</span>
-            <span className="is-lime">a</span>
-            <span className="is-lime">b</span>
-            <span className="is-lime">c</span>
-          </div>
-        </div>
-        <p>
-          One token per full read. <span>Memory-bound.</span>
-        </p>
-        <span className="phase-diagram__badge phase-diagram__badge--dark">
-          TPOT <span>time per output token</span>
+        <span className="video-frame__watch">
+          <YouTubeMark size={16} /> Watch from {formatTime(block.timestamp.seconds)}
         </span>
-      </div>
+      </button>
+      <figcaption>
+        <span className="video-frame__figure">{block.figure}</span>
+        <span className="video-frame__caption">{block.caption}</span>
+        <button
+          type="button"
+          className="timestamp-chip timestamp-chip--quiet"
+          onClick={() => onPlay(block.timestamp.seconds)}
+        >
+          <PlayIcon size={7} /> {formatTime(block.timestamp.seconds)}
+        </button>
+      </figcaption>
     </figure>
   )
 }

@@ -13,12 +13,24 @@ describe('seeded guide', () => {
     }
   })
 
-  it('keeps the chapter six article and its timestamps', () => {
+  it('keeps the chapter six article and its video frames', () => {
     const chapter = getChapter(SEEDED_GUIDE, 'kv-cache')
     expect(chapter.title).toBe('The cache that makes chat feel instant.')
     expect(chapter.start).toBe(1484)
-    expect(chapter.blocks.some((block) => block.type === 'diagram')).toBe(true)
+    expect(chapter.blocks.filter((block) => block.type === 'frame')).toHaveLength(2)
+    expect(chapter.blocks.every((block) => block.type !== 'frame' || block.src.startsWith('/frames/'))).toBe(true)
     expect(getChapterByNumber(SEEDED_GUIDE, 6).id).toBe('kv-cache')
+  })
+
+  it('gives every chapter at least one real video frame', () => {
+    for (const chapter of SEEDED_GUIDE.chapters) {
+      const frames = chapter.blocks.filter((block) => block.type === 'frame')
+      expect(frames.length).toBeGreaterThanOrEqual(1)
+      for (const frame of frames) {
+        expect(frame.timestamp.seconds).toBeGreaterThan(0)
+        expect(frame.src.startsWith('/frames/')).toBe(true)
+      }
+    }
   })
 
   it('has curated sources with URLs and key points', () => {

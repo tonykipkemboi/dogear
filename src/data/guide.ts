@@ -14,9 +14,35 @@ export type Block =
       kicker?: string
       timestamp?: { label: string; seconds: number }
     }
-  | { type: 'diagram'; variant: 'prefill-decode' }
+  | {
+      type: 'frame'
+      src: string
+      alt: string
+      figure: string
+      caption: string
+      timestamp: { label: string; seconds: number }
+    }
   | { type: 'caption'; text: string; timestamp?: { label: string; seconds: number } }
   | { type: 'callout'; label: string; text: string }
+
+type FrameBlock = Extract<Block, { type: 'frame' }>
+
+function frame(
+  figure: string,
+  src: string,
+  alt: string,
+  caption: string,
+  seconds: number,
+): FrameBlock {
+  return {
+    type: 'frame',
+    src,
+    alt,
+    figure,
+    caption,
+    timestamp: { label: 'video', seconds },
+  }
+}
 
 export interface Chapter {
   id: string
@@ -168,13 +194,20 @@ const chapterSix: Chapter = {
   start: 1484,
   end: 1710,
   readMinutes: 6,
-  diagramCount: 3,
+  diagramCount: 2,
   keyPoints: [
     'Prefill runs once over the prompt.',
     'Decode reuses the saved keys and values.',
     'Memory, not compute, sets the serving ceiling.',
   ],
   blocks: [
+    frame(
+      'Fig. 06',
+      '/frames/06c.jpg',
+      'KodeKloud video frame: the cache survives the turn, so the next token costs less.',
+      'The cache survives the turn. A follow-up token reuses the work instead of re-reading the prompt.',
+      1640,
+    ),
     {
       type: 'p',
       text: "A language model has exactly one trick: given all the text so far, predict the next token. Then it appends that token to the input and runs the whole model again. A 100-token answer isn't one big calculation. It's the same loop, a hundred times.",
@@ -200,12 +233,13 @@ const chapterSix: Chapter = {
       type: 'p',
       text: "Prefill reads the whole prompt in one pass, using the GPU's math. Decode writes one token at a time and re-reads the model from memory for each one.",
     },
-    { type: 'diagram', variant: 'prefill-decode' },
-    {
-      type: 'caption',
-      text: "Fig. 06. The same GPU takes turns doing two different jobs. That's the whole reason batching and disaggregation exist.",
-      timestamp: { label: '24:44', seconds: 1484 },
-    },
+    frame(
+      'Fig. 06A',
+      '/frames/06a.jpg',
+      'KodeKloud video frame: prefill and decode are two different jobs on the same GPU.',
+      'The same GPU takes turns doing two different jobs: prefill and decode.',
+      1490,
+    ),
     {
       type: 'callout',
       label: 'What to remember',
@@ -231,6 +265,13 @@ const otherChapters: Chapter[] = [
       'The loop repeats until the model stops.',
     ],
     blocks: [
+      frame(
+        'Fig. 01',
+        '/frames/01.jpg',
+        'KodeKloud video frame: What is ChatGPT?',
+        'What is ChatGPT? The model predicts the next token, then runs again.',
+        132,
+      ),
       {
         type: 'p',
         text: 'A language model is a function that takes a sequence of tokens and returns a probability for every token that could come next. Pick one, append it, run the function again.',
@@ -255,13 +296,20 @@ const otherChapters: Chapter[] = [
     start: 424,
     end: 674,
     readMinutes: 4,
-    diagramCount: 2,
+    diagramCount: 1,
     keyPoints: [
       'A CPU is built for branching and latency.',
       'A GPU is built for parallel arithmetic.',
       'Transformer math is mostly matrix multiplication.',
     ],
     blocks: [
+      frame(
+        'Fig. 02',
+        '/frames/02.jpg',
+        'KodeKloud video frame: Why not your own computer?',
+        'Why not your own computer? The serving target is not the laptop.',
+        432,
+      ),
       {
         type: 'p',
         text: 'A CPU has a handful of powerful cores that can follow complicated instructions. A GPU has thousands of simpler lanes that want to do the same operation at once.',
@@ -286,13 +334,20 @@ const otherChapters: Chapter[] = [
     start: 675,
     end: 930,
     readMinutes: 5,
-    diagramCount: 2,
+    diagramCount: 1,
     keyPoints: [
       'Weights take memory before anyone sends a prompt.',
       'The KV cache grows with context and concurrency.',
       'Capacity and bandwidth are separate limits.',
     ],
     blocks: [
+      frame(
+        'Fig. 03',
+        '/frames/03.jpg',
+        'KodeKloud video frame: feeding the GPU cores from VRAM and system RAM.',
+        'Feeding the cores: GPU cores, VRAM, and the system RAM behind them.',
+        684,
+      ),
       {
         type: 'p',
         text: 'Before a model answers anything, its weights have to fit in GPU memory. Then each active conversation needs room for its growing KV cache. The leftovers are where the batch lives.',
@@ -317,13 +372,20 @@ const otherChapters: Chapter[] = [
     start: 931,
     end: 1190,
     readMinutes: 5,
-    diagramCount: 2,
+    diagramCount: 1,
     keyPoints: [
       'Serving engines schedule many requests together.',
       'PagedAttention manages KV cache blocks.',
       'A queue is a product decision, not just an implementation detail.',
     ],
     blocks: [
+      frame(
+        'Fig. 04',
+        '/frames/04.jpg',
+        'KodeKloud video frame: a script is not a service.',
+        'A script is not a service. The serving layer is the difference.',
+        940,
+      ),
       {
         type: 'p',
         text: 'A serving engine sits between a stream of requests and a small number of GPUs. It decides which prompts get prefilled, which decodes get another token, and whose cache can stay in memory.',
@@ -348,13 +410,20 @@ const otherChapters: Chapter[] = [
     start: 1191,
     end: 1483,
     readMinutes: 4,
-    diagramCount: 2,
+    diagramCount: 1,
     keyPoints: [
       'Prefill runs in parallel over the prompt.',
       'Decode produces one token per pass.',
       'The two phases stress different hardware limits.',
     ],
     blocks: [
+      frame(
+        'Fig. 05',
+        '/frames/05.jpg',
+        'KodeKloud video frame: inside the loop, two different halves.',
+        'Inside the loop: two very different halves.',
+        1200,
+      ),
       {
         type: 'p',
         text: 'Prefill has the whole prompt at once, so it can use the GPU broadly. Decode has one new token at a time, so it spends more time reading weights and cache than doing fresh math.',
@@ -380,13 +449,20 @@ const otherChapters: Chapter[] = [
     start: 1711,
     end: 1882,
     readMinutes: 5,
-    diagramCount: 2,
+    diagramCount: 1,
     keyPoints: [
       'Batching fills the gaps between tokens.',
       'More concurrency can lower cost and raise latency.',
       'The KV cache limits how large a batch can grow.',
     ],
     blocks: [
+      frame(
+        'Fig. 07',
+        '/frames/07.jpg',
+        'KodeKloud video frame: what each turn costs on one GPU.',
+        'What each turn costs when one GPU serves many requests.',
+        1720,
+      ),
       {
         type: 'p',
         text: 'Serving one request at a time leaves the GPU idle between tokens. Batching puts several requests through the same pass, so the hardware has more work to do while each person waits for their next word.',
@@ -411,13 +487,20 @@ const otherChapters: Chapter[] = [
     start: 1883,
     end: 2079,
     readMinutes: 5,
-    diagramCount: 2,
+    diagramCount: 1,
     keyPoints: [
       'Tensor parallelism splits one layer across devices.',
       'Pipeline parallelism splits layers into stages.',
       'Every split adds communication.',
     ],
     blocks: [
+      frame(
+        'Fig. 08',
+        '/frames/08.jpg',
+        'KodeKloud video frame: too big for one GPU.',
+        'Too big for one GPU: the model has to be split.',
+        1892,
+      ),
       {
         type: 'p',
         text: 'When the weights are larger than the memory on one device, the model has to be split. Tensor parallelism divides the math inside a layer. Pipeline parallelism gives different layers to different stages.',
@@ -449,6 +532,13 @@ const otherChapters: Chapter[] = [
       'Routing has to know where the cache lives.',
     ],
     blocks: [
+      frame(
+        'Fig. 09',
+        '/frames/09.jpg',
+        'KodeKloud video frame: which server gets the request?',
+        'Which server gets the request? Routing decides the cache hit.',
+        2090,
+      ),
       {
         type: 'p',
         text: 'A normal load balancer spreads requests across healthy machines. That is the wrong default for prefix caching. If two requests share a long prompt but land on different GPUs, both have to prefill it.',
@@ -473,13 +563,20 @@ const otherChapters: Chapter[] = [
     start: 2287,
     end: 3059,
     readMinutes: 6,
-    diagramCount: 2,
+    diagramCount: 1,
     keyPoints: [
       'Disaggregation gives prefill and decode different pools.',
       'KV cache has to move between them.',
       'The scheduler is now a distributed systems problem.',
     ],
     blocks: [
+      frame(
+        'Fig. 10',
+        '/frames/10.jpg',
+        'KodeKloud video frame: your fleet with cache-aware routing.',
+        'Your fleet, with cache-aware routing.',
+        2295,
+      ),
       {
         type: 'p',
         text: 'If prefill and decode want different things from hardware, running them on the same GPU is a compromise. Disaggregated serving gives each phase its own pool.',
