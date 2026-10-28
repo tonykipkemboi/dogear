@@ -24,6 +24,7 @@ export type Block =
     }
   | { type: 'caption'; text: string; timestamp?: { label: string; seconds: number } }
   | { type: 'callout'; label: string; text: string }
+  | { type: 'recall'; question: string; answer: string }
 
 type FrameBlock = Extract<Block, { type: 'frame' }>
 

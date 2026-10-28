@@ -324,6 +324,7 @@ async function getModelCatalog() {
 
 const GUIDE_LEVELS = new Set(['ELI5', 'ELI15', 'Undergrad', 'Expert'])
 const GUIDE_PURPOSES = new Set(['understand', 'interview', 'build', 'overview'])
+const GUIDE_VERSION = 4
 
 const LEVEL_GUIDANCE = {
   ELI5: 'Explain like the reader is five. Use concrete, everyday analogies and short sentences.',
@@ -395,7 +396,7 @@ function parseModelJson(text) {
   }
 }
 
-async function generateGuideJson({ model, level, purpose, meta, cues }) {
+async function generateGuideJson({ model, level, purpose, meta, cues, extraInstruction = '' }) {
   const stored = await getStoredKey('nebius')
   if (!stored) throw new Error('Add a Nebius Token Factory key in Keys to compile a learning guide.')
 
@@ -411,7 +412,8 @@ async function generateGuideJson({ model, level, purpose, meta, cues }) {
       "keyPoints": ["Point one", "Point two"],
       "blocks": [
         {"type": "p", "text": "A short explanatory paragraph."},
-        {"type": "callout", "label": "What to remember", "text": "One sentence to keep."}
+        {"type": "callout", "label": "Mental model", "text": "One sentence to keep."},
+        {"type": "recall", "question": "A question that tests understanding.", "answer": "A short model answer."}
       ]
     }
   ]
@@ -426,15 +428,21 @@ async function generateGuideJson({ model, level, purpose, meta, cues }) {
     'Escape quotation marks inside strings and do not use trailing commas.',
   ].join(' ')
 
+  const minChapters = meta.duration >= 1200 ? 6 : meta.duration >= 600 ? 5 : 3
+
   const user = [
     `Video: ${meta.title}`,
     `Channel: ${meta.channel}`,
     `Duration: ${formatClock(meta.duration)}`,
     `Reading level: ${level}. ${LEVEL_GUIDANCE[level] || LEVEL_GUIDANCE.ELI15}`,
     `Purpose: ${purpose}. ${PURPOSE_GUIDANCE[purpose] || PURPOSE_GUIDANCE.understand}`,
-    'Write 3 to 8 chapters. Each chapter needs 2 to 5 explanatory blocks and one callout.',
+    `Write ${minChapters} to ${minChapters + 2} chapters. Cover the whole video, not just the opening.`,
+    'Build understanding, not a summary. Every chapter must explain mechanisms and causal links, not merely recap what was said.',
+    'Each chapter needs 2 to 4 explanatory paragraphs, one callout labeled "Mental model", "Common mistake", "Try it", or "Interview angle", and one recall question with a model answer.',
+    'For interview prep, make at least one recall question sound like a real interview question.',
     'Do not use generic titles like "Part 1". The guide should teach, not transcribe.',
     `JSON schema: ${schema}`,
+    ...(extraInstruction ? [extraInstruction] : []),
     'Transcript:',
     transcriptForModel(cues),
   ].join('\n\n')
@@ -517,6 +525,11 @@ function normalizeGuideJson(parsed, prepared, level, purpose) {
       .map((block) => {
         if (typeof block === 'string') return { type: 'p', text: block.trim() }
         if (!block || typeof block !== 'object') return null
+        if (block.type === 'recall') {
+          const question = typeof block.question === 'string' ? block.question.trim() : ''
+          const answer = typeof block.answer === 'string' ? block.answer.trim() : ''
+          return question && answer ? { type: 'recall', question, answer } : null
+        }
         const text = typeof block.text === 'string' ? block.text.trim() : ''
         if (!text) return null
         if (block.type === 'callout' || typeof block.label === 'string') {
@@ -528,7 +541,18 @@ function normalizeGuideJson(parsed, prepared, level, purpose) {
     const keyPoints = Array.isArray(raw?.keyPoints)
       ? raw.keyPoints.filter((point) => typeof point === 'string' && point.trim()).slice(0, 4)
       : []
-    const words = blocks.reduce((total, block) => total + block.text.split(/\s+/).length, 0)
+    if (!blocks.some((block) => block.type === 'recall')) {
+      blocks.push({
+        type: 'recall',
+        question: `Can you explain ${title || 'this idea'} without looking?`,
+        answer: keyPoints[0] || (typeof raw?.deck === 'string' ? raw.deck : 'Try explaining the mechanism in your own words.'),
+      })
+    }
+    const words = blocks.reduce(
+      (total, block) =>
+        total + (block.type === 'recall' ? `${block.question} ${block.answer}` : block.text).split(/\s+/).length,
+      0,
+    )
     return {
       title: title || `Chapter ${index + 1}`,
       short: typeof raw?.short === 'string' && raw.short.trim() ? raw.short.trim().slice(0, 40) : `Chapter ${index + 1}`,
@@ -583,6 +607,7 @@ function normalizeGuideJson(parsed, prepared, level, purpose) {
     minutesLeft: Math.max(1, Math.round(readMinutes * 0.92)),
     level,
     purpose,
+    guideVersion: GUIDE_VERSION,
     chapters,
     recentHighlights: [],
     sources: [
@@ -606,27 +631,338 @@ function normalizeGuideJson(parsed, prepared, level, purpose) {
   }
 }
 
+async function callGuideCompletion({ stored, model, messages, maxTokens = 2200, temperature = 0.2 }) {
+  const response = await fetch('https://api.tokenfactory.nebius.com/v1/chat/completions', {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${stored.value}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      model,
+      messages,
+      temperature,
+      max_tokens: maxTokens,
+    }),
+    signal: AbortSignal.timeout(120_000),
+  })
+  if (!response.ok) {
+    if (response.status === 401 || response.status === 403) {
+      throw new Error('Nebius rejected the key. Check it in Keys.')
+    }
+    throw new Error(`Nebius returned ${response.status}.`)
+  }
+  const data = await response.json()
+  const content = data?.choices?.[0]?.message?.content
+  if (typeof content !== 'string' || !content.trim()) throw new Error('Nebius returned an empty guide.')
+  return content
+}
+
+async function generateOutline({ stored, model, level, purpose, meta, cues, extraInstruction = '' }) {
+  const minChapters = meta.duration >= 1200 ? 6 : meta.duration >= 600 ? 5 : 3
+  const schema = `{
+  "deck": "One-sentence promise for the guide",
+  "chapters": [
+    {
+      "title": "Specific teaching title",
+      "short": "2 to 4 words",
+      "start": 0,
+      "end": 120,
+      "deck": "One-sentence chapter summary",
+      "focus": "The one mechanism the reader must understand",
+      "keyPoints": ["Point one", "Point two"]
+    }
+  ]
+}`
+  const system = [
+    'You are Dogear, an editor who turns video transcripts into learning guides.',
+    'Return only valid JSON. No markdown fences, no commentary, no em dashes.',
+    'Do not paste the transcript. Paraphrase, explain, and connect the ideas.',
+    'Every claim must be supported by the transcript.',
+    'Use the transcript timestamps to place chapter boundaries in seconds.',
+    'Escape quotation marks inside strings and do not use trailing commas.',
+  ].join(' ')
+  const user = [
+    `Video: ${meta.title}`,
+    `Channel: ${meta.channel}`,
+    `Duration: ${formatClock(meta.duration)}`,
+    `Reading level: ${level}. ${LEVEL_GUIDANCE[level] || LEVEL_GUIDANCE.ELI15}`,
+    `Purpose: ${purpose}. ${PURPOSE_GUIDANCE[purpose] || PURPOSE_GUIDANCE.understand}`,
+    `Write ${minChapters} to ${minChapters + 2} chapters. Cover the whole video, not just the opening.`,
+    'This is the outline only. The chapter bodies are written in a second pass.',
+    'Titles must be specific and teach the idea, not say "Part 1".',
+    `JSON schema: ${schema}`,
+    ...(extraInstruction ? [extraInstruction] : []),
+    'Transcript:',
+    transcriptForModel(cues),
+  ].join('\n\n')
+  const messages = [
+    { role: 'system', content: system },
+    { role: 'user', content: user },
+  ]
+
+  let content = ''
+  try {
+    content = await callGuideCompletion({ stored, model, messages, maxTokens: 2200 })
+    return parseModelJson(content)
+  } catch (firstError) {
+    const repaired = await callGuideCompletion({
+      stored,
+      model,
+      messages: [
+        ...messages,
+        {
+          role: 'user',
+          content: 'Return the same outline as one valid JSON object only. No prose, no code fences, no commentary.',
+        },
+      ],
+      maxTokens: 2200,
+      temperature: 0,
+    })
+    return parseModelJson(repaired)
+  }
+}
+
+async function generateChapterBody({ stored, model, level, purpose, meta, outline, index }) {
+  const previous = outline.chapters[index - 1]
+  const next = outline.chapters[index + 1]
+  const segment = meta.cues.filter(
+    (cue) => cue.start >= outline.start - 3 && cue.end <= outline.end + 3,
+  )
+  const segmentCues = segment.length ? segment : meta.cues
+  const schema = `{
+  "title": "Specific teaching title for this chapter",
+  "short": "2 to 4 words",
+  "deck": "One-sentence chapter summary",
+  "keyPoints": ["Point one", "Point two"],
+  "blocks": [
+    {"type": "p", "text": "A causal explanation, not a recap."},
+    {"type": "p", "text": "A second explanation or concrete example."},
+    {"type": "callout", "label": "Mental model | Common mistake | Try it | Interview angle", "text": "One sentence to keep."},
+    {"type": "recall", "question": "A question that tests understanding.", "answer": "A short model answer."}
+  ]
+}`
+  const system = [
+    'You are Dogear, writing one chapter of a learning guide.',
+    'Return only valid JSON. No markdown fences, no commentary, no em dashes.',
+    'Build understanding, not a summary. Explain the mechanism and why it matters.',
+    'Do not paste the transcript. Use concrete details from the transcript, but paraphrase them.',
+    'Every claim must be supported by the transcript segment.',
+  ].join(' ')
+  const user = [
+    `Video: ${meta.title}`,
+    `Chapter ${index + 1} of ${outline.chapters.length}: ${outline.title || 'Untitled chapter'}`,
+    outline.title
+      ? `Chapter focus: ${outline.focus || outline.deck}`
+      : 'Give this segment a specific teaching title and focus.',
+    `Known key points: ${(outline.keyPoints || []).join(' · ')}`,
+    `Previous chapter: ${previous ? previous.title : 'Start of the guide'}`,
+    `Next chapter: ${next ? next.title : 'End of the guide'}`,
+    `Level: ${level}. ${LEVEL_GUIDANCE[level] || LEVEL_GUIDANCE.ELI15}`,
+    `Purpose: ${purpose}. ${PURPOSE_GUIDANCE[purpose] || PURPOSE_GUIDANCE.understand}`,
+    'Write 3 to 5 blocks. Include at least one p, one callout, and one recall question.',
+    'The recall answer should explain the idea in one or two sentences.',
+    `JSON schema: ${schema}`,
+    `Transcript segment [${formatClock(outline.start)} to ${formatClock(outline.end)}]:`,
+    transcriptForModel(segmentCues),
+  ].join('\n\n')
+  const messages = [
+    { role: 'system', content: system },
+    { role: 'user', content: user },
+  ]
+
+  const readBody = (parsed) => {
+    if (!Array.isArray(parsed?.blocks) || parsed.blocks.length === 0) throw new Error('No blocks.')
+    return {
+      title: typeof parsed.title === 'string' ? parsed.title.trim() : '',
+      short: typeof parsed.short === 'string' ? parsed.short.trim() : '',
+      deck: typeof parsed.deck === 'string' ? parsed.deck.trim() : '',
+      keyPoints: Array.isArray(parsed.keyPoints)
+        ? parsed.keyPoints.filter((point) => typeof point === 'string' && point.trim()).slice(0, 4)
+        : [],
+      blocks: parsed.blocks,
+    }
+  }
+
+  try {
+    const content = await callGuideCompletion({ stored, model, messages, maxTokens: 1800 })
+    return readBody(parseModelJson(content))
+  } catch {
+    try {
+      const content = await callGuideCompletion({
+        stored,
+        model,
+        messages: [
+          ...messages,
+          {
+            role: 'user',
+            content: 'Return this chapter as one valid JSON object only. No prose, no code fences.',
+          },
+        ],
+        maxTokens: 1800,
+        temperature: 0,
+      })
+      return readBody(parseModelJson(content))
+    } catch {
+      const fallback = outline.keyPoints?.[0] || outline.deck || outline.focus || outline.title
+      const title = outline.title || `Chapter ${outline.number || index + 1}`
+      return {
+        title,
+        short: outline.short || `Chapter ${index + 1}`,
+        deck: outline.deck || '',
+        keyPoints: outline.keyPoints || [],
+        blocks: [
+          { type: 'p', text: outline.focus || outline.deck || title },
+          { type: 'p', text: fallback },
+          { type: 'callout', label: 'What to remember', text: outline.deck || title },
+          {
+            type: 'recall',
+            question: `Can you explain “${title}” without looking?`,
+            answer: fallback,
+          },
+        ],
+      }
+    }
+  }
+}
+
+function makeWindowOutline(meta, count) {
+  const step = meta.duration / count
+  return {
+    deck: '',
+    chapters: Array.from({ length: count }, (_, index) => {
+      const start = Math.floor(index * step)
+      const end = index === count - 1 ? meta.duration : Math.floor((index + 1) * step)
+      return {
+        title: '',
+        short: `Chapter ${index + 1}`,
+        deck: '',
+        focus: '',
+        keyPoints: [],
+        start,
+        end,
+        number: index + 1,
+      }
+    }),
+  }
+}
+
+async function mapLimit(items, limit, fn) {
+  const results = new Array(items.length)
+  let cursor = 0
+  const workers = Array.from({ length: Math.min(limit, items.length) }, async () => {
+    while (true) {
+      const index = cursor++
+      if (index >= items.length) return
+      results[index] = await fn(items[index], index)
+    }
+  })
+  await Promise.all(workers)
+  return results
+}
+
+function normalizeOutline(parsed, meta) {
+  const rawChapters = Array.isArray(parsed?.chapters) ? parsed.chapters : []
+  if (rawChapters.length < 2) throw new Error('The model did not return enough chapters.')
+  const duration = meta.duration
+  const step = duration / rawChapters.length
+  const chapters = rawChapters
+    .map((raw, index) => ({
+      title: typeof raw?.title === 'string' ? raw.title.trim() : '',
+      short:
+        typeof raw?.short === 'string' && raw.short.trim()
+          ? raw.short.trim().slice(0, 40)
+          : typeof raw?.title === 'string'
+            ? raw.title.split(/\s+/).slice(0, 4).join(' ')
+            : `Chapter ${index + 1}`,
+      deck: typeof raw?.deck === 'string' ? raw.deck.trim() : '',
+      focus: typeof raw?.focus === 'string' ? raw.focus.trim() : '',
+      keyPoints: Array.isArray(raw?.keyPoints)
+        ? raw.keyPoints.filter((point) => typeof point === 'string' && point.trim()).slice(0, 4)
+        : [],
+      start: Math.max(0, Math.min(duration - 1, secondsFrom(raw?.start, index * step))),
+    }))
+    .filter((chapter) => chapter.title)
+    .sort((a, b) => a.start - b.start)
+    .map((chapter, index) => ({
+      ...chapter,
+      number: index + 1,
+      start: index === 0 ? Math.min(chapter.start, duration - 1) : chapter.start,
+      end: index < rawChapters.length - 1 ? chapter.start : duration,
+    }))
+  if (chapters.length < 2) throw new Error('The model did not return enough usable chapters.')
+  for (let index = 0; index < chapters.length; index += 1) {
+    const next = chapters[index + 1]
+    chapters[index].end = next ? Math.max(chapters[index].start + 5, next.start) : duration
+  }
+  return {
+    deck: typeof parsed?.deck === 'string' ? parsed.deck.trim() : chapters[0].deck,
+    chapters,
+  }
+}
+
 async function compileGuideWithNebius(value, { level, purpose, model }) {
   const videoId = parseYouTubeId(value)
   if (!videoId) throw new Error('That is not a valid YouTube link.')
   const guideId = `yt-${videoId.toLowerCase()}`
   try {
     const cached = JSON.parse(await readFile(path.join(LIBRARY_DIR, `${guideId}.json`), 'utf8'))
-    if (cached.level === level && cached.purpose === purpose) return guideId
+    if (cached.level === level && cached.purpose === purpose && cached.guideVersion === GUIDE_VERSION) {
+      return guideId
+    }
   } catch {
     // No usable cached guide.
   }
 
+  const stored = await getStoredKey('nebius')
+  if (!stored) throw new Error('Add a Nebius Token Factory key in Keys to compile a learning guide.')
   const prepared = await prepareYouTubeGuide(value)
   const settings = await readSettings()
   const selectedModel = typeof model === 'string' && model ? model : settings.model
-  const parsed = await generateGuideJson({
-    model: selectedModel,
-    level,
-    purpose,
-    meta: prepared.meta,
-    cues: prepared.cues,
-  })
+  const minChapters = prepared.meta.duration >= 1200 ? 6 : prepared.meta.duration >= 600 ? 5 : 3
+  let outline = null
+  try {
+    const outlineRaw = await generateOutline({
+      stored,
+      model: selectedModel,
+      level,
+      purpose,
+      meta: prepared.meta,
+      cues: prepared.cues,
+    })
+    const candidate = normalizeOutline(outlineRaw, prepared.meta)
+    if (candidate.chapters.length >= minChapters) outline = candidate
+  } catch {
+    // Use a deterministic chapter map below if the model cannot outline.
+  }
+  if (!outline) outline = makeWindowOutline(prepared.meta, minChapters)
+  const bodies = await mapLimit(outline.chapters, 2, async (chapter, index) =>
+    generateChapterBody({
+      stored,
+      model: selectedModel,
+      level,
+      purpose,
+      meta: { ...prepared.meta, cues: prepared.cues },
+      outline: { ...chapter, chapters: outline.chapters },
+      index,
+    }),
+  )
+  const parsed = {
+    deck: outline.deck,
+    chapters: outline.chapters.map((chapter, index) => {
+      const body = bodies[index]
+      return {
+        ...chapter,
+        title: body.title || chapter.title || `Chapter ${index + 1}`,
+        short: body.short || chapter.short || `Chapter ${index + 1}`,
+        deck: body.deck || chapter.deck || '',
+        keyPoints: body.keyPoints?.length ? body.keyPoints : chapter.keyPoints,
+        blocks: body.blocks,
+        start: chapter.start,
+        end: chapter.end,
+      }
+    }),
+  }
   const guide = normalizeGuideJson(parsed, prepared, level, purpose)
   await mkdir(LIBRARY_DIR, { recursive: true })
   await writeFile(path.join(LIBRARY_DIR, `${guideId}.json`), `${JSON.stringify(guide, null, 2)}\n`, {

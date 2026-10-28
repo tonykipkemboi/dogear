@@ -33,6 +33,7 @@ Dogear turns long videos into a reading page. The video stays the source: every 
 ## What makes it different
 
 - **Real frames, not invented diagrams.** Concept figures are pulled from the video and play inline from their timestamp.
+- **Check your understanding.** Compiled chapters include a revealable recall question, plus mental-model, misconception, and interview-angle callouts.
 - **Highlights that keep up.** Select a sentence, then explain it, simplify it, see an example, or check the source. With a connected Nebius key, the chosen model answers for that passage; if it is offline, chapter-grounded local copy takes over.
 - **Curate your list.** Remove recent highlights you no longer want. The change survives a reload.
 - **Sources you can verify.** Tavily results open in a focused source view with the excerpt, key points, and original link.
@@ -77,7 +78,7 @@ TAVILY_API_KEY=...
 
 ## How it works
 
-1. **Paste or compile.** Add a YouTube link, then choose your level and why you are watching. Dogear reads the captions and the connected model writes a chaptered guide with source timestamps.
+1. **Paste or compile.** Add a YouTube link, then choose your level and why you are watching. The compiler outlines the video first, then writes each chapter with an explanation, an example or misconception, and a recall check.
 2. **Read and highlight.** The page is the primary surface. Highlights and notes live beside it, not in a chat box.
 3. **Pull the threads.** Ask for an explanation, check a claim against the web, or jump back to the exact moment in the video.
 

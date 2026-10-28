@@ -1,4 +1,4 @@
-import { useRef, type SyntheticEvent } from 'react'
+import { useRef, useState, type SyntheticEvent } from 'react'
 import type { Block, Chapter, Guide } from '../data/guide'
 import { PlayIcon } from './Icons'
 import { YouTubeMark } from './Marks'
@@ -181,6 +181,10 @@ function BlockView({
     )
   }
 
+  if (block.type === 'recall') {
+    return <RecallCard block={block} />
+  }
+
   return (
     <aside className="remember-card">
       <span className="remember-card__bar" aria-hidden="true" />
@@ -188,6 +192,35 @@ function BlockView({
         <span className="remember-card__label">{block.label}</span>
         <p>{block.text}</p>
       </div>
+    </aside>
+  )
+}
+
+function RecallCard({ block }: { block: Extract<Block, { type: 'recall' }> }) {
+  const [revealed, setRevealed] = useState(false)
+  return (
+    <aside className={`recall-card ${revealed ? 'is-revealed' : ''}`}>
+      <div className="recall-card__head">
+        <span className="recall-card__label">
+          <span className="square-dot" aria-hidden="true" /> Check yourself
+        </span>
+        <span className="mono-label">Recall</span>
+      </div>
+      <p className="recall-card__question">{block.question}</p>
+      {revealed ? (
+        <div className="recall-card__answer">
+          <span className="mono-label">One way to answer</span>
+          <p>{block.answer}</p>
+        </div>
+      ) : null}
+      <button
+        type="button"
+        className="recall-card__toggle"
+        aria-expanded={revealed}
+        onClick={() => setRevealed((current) => !current)}
+      >
+        {revealed ? 'Hide answer' : 'Reveal answer'}
+      </button>
     </aside>
   )
 }
