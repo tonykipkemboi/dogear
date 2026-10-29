@@ -324,7 +324,7 @@ async function getModelCatalog() {
 
 const GUIDE_LEVELS = new Set(['ELI5', 'ELI15', 'Undergrad', 'Expert'])
 const GUIDE_PURPOSES = new Set(['understand', 'interview', 'build', 'overview'])
-const GUIDE_VERSION = 4
+const GUIDE_VERSION = 5
 
 const LEVEL_GUIDANCE = {
   ELI5: 'Explain like the reader is five. Use concrete, everyday analogies and short sentences.',
@@ -610,6 +610,7 @@ function normalizeGuideJson(parsed, prepared, level, purpose) {
     guideVersion: GUIDE_VERSION,
     chapters,
     recentHighlights: [],
+    transcript: prepared.cues.map((cue) => ({ start: Math.round(cue.start), text: cue.text })),
     sources: [
       {
         id: 'youtube-transcript',
@@ -1271,6 +1272,23 @@ async function handleApi(request, response, url) {
       sendJson(response, 200, { entries })
     } catch {
       sendJson(response, 200, { entries: [] })
+    }
+    return
+  }
+
+  if (url.pathname.startsWith('/api/transcript/') && request.method === 'GET') {
+    const videoId = decodeURIComponent(url.pathname.slice('/api/transcript/'.length))
+    if (!/^[A-Za-z0-9_-]{11}$/.test(videoId)) {
+      sendError(response, 400, 'Invalid video id.')
+      return
+    }
+    try {
+      const prepared = await prepareYouTubeGuide(`https://www.youtube.com/watch?v=${videoId}`)
+      sendJson(response, 200, {
+        transcript: prepared.cues.map((cue) => ({ start: Math.round(cue.start), text: cue.text })),
+      })
+    } catch (error) {
+      sendError(response, 422, error instanceof Error ? error.message : 'Could not load the transcript.')
     }
     return
   }

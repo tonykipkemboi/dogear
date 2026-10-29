@@ -1,5 +1,7 @@
+import { useEffect, useState } from 'react'
 import type { Chapter, Guide } from '../data/guide'
 import type { SavedNote } from '../lib/storage'
+import { getTranscript } from '../lib/api'
 import { Dialog } from './Dialog'
 import { ArrowUpRightIcon, CloseIcon, PlayIcon } from './Icons'
 import { ContentsList } from './ContentsRail'
@@ -95,20 +97,47 @@ export function TranscriptSheet({
   guide,
   chapter,
   onSelect,
+  onPlay,
   onClose,
 }: {
   open: boolean
   guide: Guide
   chapter: Chapter
   onSelect: (chapter: Chapter) => void
+  onPlay: (seconds: number) => void
   onClose: () => void
 }) {
+  const [remote, setRemote] = useState<{ start: number; text: string }[] | null>(null)
+  const [loadingTranscript, setLoadingTranscript] = useState(false)
+
+  useEffect(() => {
+    if (!open || guide.transcript?.length) return
+    let cancelled = false
+    setLoadingTranscript(true)
+    getTranscript(guide.youtubeId)
+      .then((result) => {
+        if (!cancelled) setRemote(result.transcript)
+      })
+      .catch(() => {
+        if (!cancelled) setRemote([])
+      })
+      .finally(() => {
+        if (!cancelled) setLoadingTranscript(false)
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [open, guide.youtubeId, guide.transcript])
+
+  const transcript = groupTranscript(guide.transcript?.length ? guide.transcript : remote ?? [])
   return (
     <Dialog open={open} onClose={onClose} sheet className="transcript-sheet" labelledBy="transcript-title">
       <div className="sheet-grab" aria-hidden="true" />
       <div className="sheet-head">
         <div>
-          <span className="mono-label">Chapter map</span>
+          <span className="mono-label">
+            {transcript.length ? 'Word for word' : loadingTranscript ? 'Loading' : 'Chapter map'}
+          </span>
           <h2 id="transcript-title">Transcript</h2>
         </div>
         <button type="button" className="icon-button" onClick={onClose} aria-label="Close transcript">
@@ -116,24 +145,43 @@ export function TranscriptSheet({
         </button>
       </div>
       <p className="transcript-intro">
-        Dogear’s chapter map is below. The video’s word-for-word transcript lives on YouTube.
+        {transcript.length
+          ? 'Click any passage to watch from that moment.'
+          : loadingTranscript
+            ? 'Loading the video transcript…'
+            : 'Dogear’s chapter map is below. The video’s word-for-word transcript lives on YouTube.'}
       </p>
       <div className="transcript-list">
-        {guide.chapters.map((item) => (
-          <button
-            key={item.id}
-            type="button"
-            className={`transcript-row ${item.id === chapter.id ? 'is-active' : ''}`}
-            onClick={() => {
-              onSelect(item)
-              onClose()
-            }}
-          >
-            <span className="transcript-row__time">{formatTime(item.start)}</span>
-            <span>{item.short}</span>
-            <PlayIcon size={8} />
-          </button>
-        ))}
+        {transcript.length
+          ? transcript.map((cue, index) => (
+              <button
+                key={`${cue.start}-${index}`}
+                type="button"
+                className="transcript-cue"
+                onClick={() => {
+                  onPlay(cue.start)
+                  onClose()
+                }}
+              >
+                <span className="transcript-row__time">{formatTime(cue.start)}</span>
+                <span>{cue.text}</span>
+              </button>
+            ))
+          : guide.chapters.map((item) => (
+              <button
+                key={item.id}
+                type="button"
+                className={`transcript-row ${item.id === chapter.id ? 'is-active' : ''}`}
+                onClick={() => {
+                  onSelect(item)
+                  onClose()
+                }}
+              >
+                <span className="transcript-row__time">{formatTime(item.start)}</span>
+                <span>{item.short}</span>
+                <PlayIcon size={8} />
+              </button>
+            ))}
       </div>
       <a
         className="button button--ghost transcript-link"
@@ -145,4 +193,24 @@ export function TranscriptSheet({
       </a>
     </Dialog>
   )
+}
+
+function groupTranscript(cues: { start: number; text: string }[]): { start: number; text: string }[] {
+  const groups: { start: number; text: string }[] = []
+  let current: { start: number; text: string } | null = null
+  for (const cue of cues) {
+    if (!current) {
+      current = { start: cue.start, text: cue.text }
+      continue
+    }
+    const span = cue.start - current.start
+    if (span >= 18 || current.text.length + cue.text.length > 340) {
+      groups.push(current)
+      current = { start: cue.start, text: cue.text }
+    } else {
+      current.text = `${current.text} ${cue.text}`
+    }
+  }
+  if (current) groups.push(current)
+  return groups
 }

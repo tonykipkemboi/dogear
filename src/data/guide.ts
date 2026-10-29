@@ -99,6 +99,7 @@ export interface Guide {
   purpose?: string
   chapters: Chapter[]
   recentHighlights: RecentHighlight[]
+  transcript?: { start: number; text: string }[]
   sources: Source[]
   accent: string
 }

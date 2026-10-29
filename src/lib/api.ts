@@ -163,3 +163,13 @@ export interface ModelCatalog {
 export async function getModels(): Promise<ModelCatalog> {
   return request<ModelCatalog>('/api/models', {}, 30_000)
 }
+
+export async function getTranscript(
+  videoId: string,
+): Promise<{ transcript: { start: number; text: string }[] }> {
+  return request<{ transcript: { start: number; text: string }[] }>(
+    `/api/transcript/${encodeURIComponent(videoId)}`,
+    {},
+    120_000,
+  )
+}

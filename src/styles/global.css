@@ -1284,7 +1284,15 @@ select:focus-visible {
   background: var(--dock);
 }
 
-.video-inline iframe {
+.video-inline__player {
+  position: absolute;
+  inset: 0;
+}
+
+.video-inline > iframe,
+.video-inline__player iframe {
+  position: absolute;
+  inset: 0;
   width: 100%;
   height: 100%;
   border: 0;
@@ -3572,6 +3580,28 @@ select:focus-visible {
   font-size: 13px;
   color: var(--graphite);
   cursor: pointer;
+}
+
+.transcript-cue {
+  display: grid;
+  grid-template-columns: 42px minmax(0, 1fr);
+  gap: 10px;
+  align-items: start;
+  width: 100%;
+  padding: 9px 0;
+  border: 0;
+  border-bottom: 1px solid var(--hairline);
+  background: none;
+  text-align: left;
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--graphite);
+  cursor: pointer;
+}
+
+.transcript-cue:hover {
+  background: var(--wash);
+  color: var(--ink);
 }
 
 .transcript-row__time {

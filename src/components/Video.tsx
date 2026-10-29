@@ -1,9 +1,10 @@
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import type { Chapter, Guide } from '../data/guide'
 import { Dialog } from './Dialog'
 import { ArrowUpRightIcon, CloseIcon, ExpandIcon, PlayIcon } from './Icons'
 import { YouTubeMark } from './Marks'
 import { formatTime, youtubeEmbedUrl, youtubeWatchUrl } from '../lib/format'
+import { loadYouTubeApi, setYouTubeCaptions, type YouTubePlayer } from '../lib/youtube'
 
 export function VideoPlayer({
   guide,
@@ -12,6 +13,9 @@ export function VideoPlayer({
   onPlay,
   onClose,
   onExpand,
+  playbackRate,
+  captions,
+  onPlayerReady,
 }: {
   guide: Guide
   chapter: Chapter
@@ -19,6 +23,9 @@ export function VideoPlayer({
   onPlay: (seconds: number) => void
   onClose: () => void
   onExpand: (seconds: number) => void
+  playbackRate: number
+  captions: boolean
+  onPlayerReady: (player: YouTubePlayer | null) => void
 }) {
   const progress = Math.min(100, (chapter.start / guide.duration) * 100)
 
@@ -30,6 +37,9 @@ export function VideoPlayer({
           start={inlineStart}
           onClose={onClose}
           onExpand={() => onExpand(inlineStart)}
+          playbackRate={playbackRate}
+          captions={captions}
+          onPlayerReady={onPlayerReady}
         />
       ) : (
         <div className="video-player__poster">
@@ -73,21 +83,81 @@ export function InlineVideo({
   start,
   onClose,
   onExpand,
+  playbackRate,
+  captions,
+  onPlayerReady,
 }: {
   guide: Guide
   start: number
   onClose: () => void
   onExpand: () => void
+  playbackRate: number
+  captions: boolean
+  onPlayerReady: (player: YouTubePlayer | null) => void
 }) {
+  const hostRef = useRef<HTMLDivElement>(null)
+  const [player, setPlayer] = useState<YouTubePlayer | null>(null)
+  const readyRef = useRef(onPlayerReady)
+  readyRef.current = onPlayerReady
+
+  useEffect(() => {
+    let cancelled = false
+    let created: YouTubePlayer | null = null
+
+    loadYouTubeApi()
+      .then((YT) => {
+        if (cancelled || !hostRef.current) return
+        created = new YT.Player(hostRef.current, {
+          videoId: guide.youtubeId,
+          playerVars: {
+            autoplay: 1,
+            start: Math.floor(start),
+            rel: 0,
+            modestbranding: 1,
+            playsinline: 1,
+          },
+          events: {
+            onReady: () => {
+              if (cancelled || !created) return
+              setPlayer(created)
+              readyRef.current(created)
+              created.setPlaybackRate(playbackRate)
+              if (captions) setYouTubeCaptions(created, true)
+            },
+          },
+        })
+      })
+      .catch(() => {
+        // The poster/overlay remains usable if the Iframe API is unavailable.
+      })
+
+    return () => {
+      cancelled = true
+      setPlayer(null)
+      readyRef.current(null)
+      try {
+        created?.destroy()
+      } catch {
+        // The iframe may already be gone.
+      }
+    }
+    // The player is recreated only when the video or start time changes.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [guide.youtubeId, start])
+
+  useEffect(() => {
+    if (!player) return
+    player.setPlaybackRate(playbackRate)
+  }, [player, playbackRate])
+
+  useEffect(() => {
+    if (!player) return
+    setYouTubeCaptions(player, captions)
+  }, [player, captions])
+
   return (
     <div className="video-inline">
-      <iframe
-        key={`${guide.youtubeId}-${start}`}
-        src={youtubeEmbedUrl(guide.youtubeId, start)}
-        title={guide.title}
-        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-        allowFullScreen
-      />
+      <div className="video-inline__player" ref={hostRef} />
       <div className="video-inline__actions">
         <button type="button" onClick={onExpand} aria-label="Expand video">
           <ExpandIcon size={11} /> Expand
@@ -200,15 +270,21 @@ export function PlaybackDock({
   onPlay,
   onTranscript,
   onNotes,
+  playbackRate,
+  captions,
+  onRateChange,
+  onToggleCaptions,
 }: {
   guide: Guide
   chapter: Chapter
   onPlay: (seconds: number) => void
   onTranscript: () => void
   onNotes: () => void
+  playbackRate: number
+  captions: boolean
+  onRateChange: (rate: number) => void
+  onToggleCaptions: () => void
 }) {
-  const [speed, setSpeed] = useState(1.25)
-  const [captions, setCaptions] = useState(false)
   const progress = Math.min(100, (chapter.start / guide.duration) * 100)
 
   return (
@@ -234,16 +310,16 @@ export function PlaybackDock({
       <button
         type="button"
         className="playback-dock__control"
-        onClick={() => setSpeed((current) => (current === 1 ? 1.25 : current === 1.25 ? 1.5 : current === 1.5 ? 2 : 1))}
-        aria-label={`Playback speed ${speed} times`}
+        onClick={() => onRateChange(playbackRate === 1 ? 1.25 : playbackRate === 1.25 ? 1.5 : playbackRate === 1.5 ? 2 : 1)}
+        aria-label={`Playback speed ${playbackRate} times`}
       >
-        {speed}×
+        {playbackRate}×
       </button>
       <button
         type="button"
         className={`playback-dock__control ${captions ? 'is-active' : ''}`}
         aria-pressed={captions}
-        onClick={() => setCaptions((current) => !current)}
+        onClick={onToggleCaptions}
       >
         CC
       </button>

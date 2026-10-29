@@ -17,6 +17,7 @@ import {
   type SavedNote,
 } from '../lib/storage'
 import { useMediaQuery } from '../lib/useMediaQuery'
+import { setYouTubeCaptions, type YouTubePlayer } from '../lib/youtube'
 import { Article, type SelectionAnchor } from './Article'
 import { ContentsRail } from './ContentsRail'
 import { Dialog } from './Dialog'
@@ -85,6 +86,9 @@ export function Reader() {
   const [searchingWeb, setSearchingWeb] = useState(false)
   const [video, setVideo] = useState<{ open: boolean; start: number }>({ open: false, start: 0 })
   const [inlineVideo, setInlineVideo] = useState<number | null>(null)
+  const [videoPlayer, setVideoPlayer] = useState<YouTubePlayer | null>(null)
+  const [playbackRate, setPlaybackRate] = useState(1.25)
+  const [captions, setCaptions] = useState(false)
   const [contentsOpen, setContentsOpen] = useState(false)
   const [notesOpen, setNotesOpen] = useState(false)
   const [transcriptOpen, setTranscriptOpen] = useState(false)
@@ -182,6 +186,20 @@ export function Reader() {
     setInlineVideo(null)
     setVideo({ open: true, start: seconds })
   }, [])
+
+  const changeRate = useCallback(
+    (next: number) => {
+      setPlaybackRate(next)
+      if (videoPlayer) videoPlayer.setPlaybackRate(next)
+    },
+    [videoPlayer],
+  )
+
+  const toggleCaptions = useCallback(() => {
+    const next = !captions
+    setCaptions(next)
+    if (videoPlayer) setYouTubeCaptions(videoPlayer, next)
+  }, [captions, videoPlayer])
 
   const toggleReadView = () => {
     if (!readView) {
@@ -608,6 +626,9 @@ export function Reader() {
                   start={inlineVideo}
                   onClose={() => setInlineVideo(null)}
                   onExpand={() => expandVideo(inlineVideo)}
+                  playbackRate={playbackRate}
+                  captions={captions}
+                  onPlayerReady={setVideoPlayer}
                 />
               </div>
             ) : (
@@ -628,6 +649,9 @@ export function Reader() {
               onPlay={(seconds) => playInline(seconds, false)}
               onClose={() => setInlineVideo(null)}
               onExpand={expandVideo}
+              playbackRate={playbackRate}
+              captions={captions}
+              onPlayerReady={setVideoPlayer}
             />
           )}
           <Article
@@ -653,6 +677,10 @@ export function Reader() {
         onPlay={playInline}
         onTranscript={() => setTranscriptOpen(true)}
         onNotes={() => setNotesOpen(true)}
+        playbackRate={playbackRate}
+        captions={captions}
+        onRateChange={changeRate}
+        onToggleCaptions={toggleCaptions}
       />
 
       {!readView ? (
@@ -744,6 +772,7 @@ export function Reader() {
         guide={guide}
         chapter={chapter}
         onSelect={selectChapter}
+        onPlay={playInline}
         onClose={() => setTranscriptOpen(false)}
       />
     </div>
