@@ -7,13 +7,7 @@
 
 ### Paste a video. Learn from it.
 
-</div>
-
-Dogear turns long videos into a reading page. Paste a YouTube link, choose a level and why you are watching, and Dogear writes a chaptered guide from the transcript. Read it, highlight passages, ask questions, and jump back to the exact moment.
-
-This is a working demo, built by Tony Kipkemboi at Nebius.
-
-<div align="center">
+<br>
 
 ![React](https://img.shields.io/badge/React-19-161616?style=flat-square&logo=react&logoColor=61DAFB)
 ![TypeScript](https://img.shields.io/badge/TypeScript-5-161616?style=flat-square&logo=typescript&logoColor=3178C6)
@@ -24,6 +18,8 @@ This is a working demo, built by Tony Kipkemboi at Nebius.
 ![Vitest](https://img.shields.io/badge/Vitest-23_tests-161616?style=flat-square&logo=vitest&logoColor=6E9F18)
 
 </div>
+
+Dogear turns long videos into a reading page. Paste a YouTube link, choose a level and why you are watching, and Dogear writes a chaptered guide from the transcript. Read it, highlight passages, ask questions, and jump back to the exact moment.
 
 ## What you get
 
@@ -45,7 +41,6 @@ npm run dev
 
 Open [http://localhost:5173](http://localhost:5173).
 
-The built-in guide uses [AI Infrastructure Explained](https://www.youtube.com/watch?v=hBzUokVYQkI) by KodeKloud.
 
 ### Requirements
 
@@ -107,5 +102,5 @@ dogear/
 ---
 
 <div align="center">
-  <sub>Built with <a href="https://tokenfactory.nebius.com">Nebius Token Factory</a> and <a href="https://tavily.com">Tavily</a>.</sub>
+  <em>This was built using DeepSeek V4.1 Flash 1017, served by <a href="https://tokenfactory.nebius.com">Nebius Token Factory</a>. The app runs locally for now and is still a work in progress.</em>
 </div>
