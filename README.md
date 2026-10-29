@@ -16,7 +16,9 @@
       <img src="./public/nebius-token-factory.svg" alt="Nebius Token Factory" height="22">
     </picture>
   </a>
-  &nbsp;&nbsp;&nbsp;
+  &nbsp;
+  <img src="./public/readme/logo-divider.svg" alt="" width="13" height="22" aria-hidden="true">
+  &nbsp;
   <a href="https://www.tavily.com" aria-label="Tavily">
     <picture>
       <source media="(prefers-color-scheme: dark)" srcset="./public/readme/tavily-full-dark.svg">
