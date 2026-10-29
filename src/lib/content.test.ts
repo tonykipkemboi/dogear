@@ -30,11 +30,18 @@ describe('getHighlightContent', () => {
     expect(source.source?.id).toBe('llm-d')
 
     const post = getHighlightContent('explain', 'ELI15', 'POST request', SOURCES, chapter)
-    expect(post.body).toContain('HTTP request')
+    expect(post.body).toContain('message')
+
+    const kid = getHighlightContent('explain', 'ELI5', 'LLM-D', SOURCES, chapter)
+    expect(kid.body).toContain('friends')
+    expect(kid.body).not.toContain('distributed')
+    expect(kid.why).toBeUndefined()
   })
 
-  it('offers all four level labels in the chips', () => {
-    for (const level of LEVELS) {
+  it('keeps the math option out of the five-year-old answer', () => {
+    const kid = getHighlightContent('explain', 'ELI5', 'quote')
+    expect(kid.chips).not.toContain('Show the math')
+    for (const level of LEVELS.filter((item) => item.id !== 'ELI5')) {
       const content = getHighlightContent('explain', level.id, 'quote')
       expect(content.chips).toContain('Show the math')
     }

@@ -110,7 +110,7 @@ Current expected results:
 - 24 unit tests
 - 18 Playwright flows
 - Production build succeeds
-- Compiled example has 8 chapters, 8 diagrams, and 8 recall checks
+- Compiled example has 6 chapters, 5 diagrams, and 6 recall checks
 
 `npm run test:e2e` starts the API and Vite if they are not already running. It needs Google Chrome. If Chrome is missing, install Chrome, or install Playwright's Chromium and update the Playwright config deliberately.
 

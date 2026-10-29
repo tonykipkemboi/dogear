@@ -324,11 +324,22 @@ async function getModelCatalog() {
 
 const GUIDE_LEVELS = new Set(['ELI5', 'ELI15', 'Undergrad', 'Expert'])
 const GUIDE_PURPOSES = new Set(['understand', 'interview', 'build', 'overview'])
-const GUIDE_VERSION = 8
+const GUIDE_VERSION = 9
 
 const LEVEL_GUIDANCE = {
-  ELI5: 'Explain like the reader is five. Use concrete, everyday analogies and short sentences.',
-  ELI15: 'Explain for a curious adult. Define the terms that matter and keep the language plain.',
+  ELI5: [
+    'Explain to a bright 5-year-old who knows toys, snacks, games, and picture books, but has never used a computer, AI, or a chatbot.',
+    'Use one everyday comparison that actually matches the idea. Keep sentences under 12 words. Use words a 5-year-old would hear at home or preschool.',
+    'Do not use these words unless the guide topic itself is that exact word: model, AI, computer, token, data, training, weights, network, inference, prefill, decode, cache, GPU, server, query, key, value, vector, tensor, attention, embedding, routing, architecture, mechanism, throughput, latency.',
+    'If a term is unavoidable, name it once and replace it immediately with a plain phrase.',
+    'Do not baby-talk. Do not add caveats or extra examples. Make the chapter a small story with a clear beginning and end.',
+  ].join(' '),
+  ELI15: [
+    'Explain to a sharp 15-year-old who uses ChatGPT and plays games, but has not taken a machine learning course.',
+    'Use plain language and one concrete example or analogy. Define every technical term in the same sentence where it appears.',
+    'Do not use textbook phrasing. Do not use query, key, value, vector, tensor, softmax, dot product, inference, prefill, decode, KV cache, throughput, or latency unless you immediately explain it in ordinary words.',
+    'Do not copy technical words from the transcript. Translate them into an explanation a 15-year-old could retell to a friend.',
+  ].join(' '),
   Undergrad: 'Explain for a technical reader. Be precise about mechanisms, constraints, and tradeoffs.',
   Expert: 'Write for an expert. Skip basics, focus on architecture, edge cases, and the decisions that matter.',
 }
@@ -615,6 +626,8 @@ async function generateOutline({ stored, model, level, purpose, meta, cues, extr
     `Write ${minChapters} to ${minChapters + 2} chapters. Cover the whole video, not just the opening.`,
     'This is the outline only. The chapter bodies are written in a second pass.',
     'Titles must be specific and teach the idea, not say "Part 1".',
+    'Apply the reading level to titles, decks, key points, and recall answers, not only to the chapter prose.',
+    'At ELI5, use ordinary words in titles. Do not use product names or version labels unless the video is specifically about that product.',
     `JSON schema: ${schema}`,
     ...(extraInstruction ? [extraInstruction] : []),
     'Transcript:',
@@ -687,6 +700,8 @@ async function generateChapterBody({ stored, model, level, purpose, meta, outlin
     `Level: ${level}. ${LEVEL_GUIDANCE[level] || LEVEL_GUIDANCE.ELI15}`,
     `Purpose: ${purpose}. ${PURPOSE_GUIDANCE[purpose] || PURPOSE_GUIDANCE.understand}`,
     'Write 3 to 5 blocks. Include at least one p, one callout, and one recall question.',
+    'Apply the reading level to the title, deck, key points, body, callout, and recall answer. Do not copy technical words from the transcript when the level asks for plain language.',
+    'At ELI5, open with a simple everyday analogy and keep technical terms out unless the chapter is specifically about that term.',
     'Add one diagram only when it makes a process, architecture, or comparison clearer. Use flow for a one-way process, loop for a repeating cycle with exactly four items in cycle order, stack for layers, compare for two alternatives, and annotated for one central object. Keep labels to 1 to 4 words and details to 14 words or fewer. Ground every label in the transcript; omit the diagram if it would be decorative or uncertain.',
     'Place the diagram after the explanation it supports and before the recall question.',
     'The recall answer should explain the idea in one or two sentences.',
@@ -997,15 +1012,28 @@ async function searchTavily(query) {
 }
 
 const ANSWER_LEVEL_RULES = {
-  ELI5: 'Use short sentences, simple words, and one everyday analogy. Do not use an unexplained technical term.',
-  ELI15: 'Write for a curious adult. Define necessary terms and avoid unexplained jargon.',
-  Undergrad: 'Write for a technical reader. Be precise about the mechanism, assumptions, and tradeoffs.',
-  Expert: 'Be precise and compact. Skip basics and focus on edge cases, constraints, and decisions.',
+  ELI5: [
+    'Explain to a bright 5-year-old who knows toys, snacks, games, and picture books, but has never used a computer, AI, or a chatbot.',
+    'Hard limit: one paragraph, two or three sentences, 55 words maximum.',
+    'Start with one familiar everyday comparison. Then say what the idea means in plain words.',
+    'Do not use these words unless the highlighted term itself is one of them: model, AI, computer, token, data, training, weights, network, inference, prefill, decode, cache, GPU, server, query, key, value, vector, tensor, attention, embedding, routing, architecture, mechanism, throughput, latency.',
+    'If the highlighted term is technical, name it once and immediately translate it. Do not use a second technical term to explain the first.',
+    'Do not add a second analogy, caveats, or a summary. No baby talk.',
+  ].join(' '),
+  ELI15: [
+    'Explain to a sharp 15-year-old who uses ChatGPT and plays games, but has not taken a machine learning course.',
+    'Hard limit: one paragraph, three or four sentences, 90 words maximum.',
+    'Start with the plain idea in one sentence, then use one concrete scenario or analogy.',
+    'Define every technical term in the same sentence where it appears. Do not use query, key, value, vector, tensor, softmax, dot product, inference, prefill, decode, KV cache, throughput, or latency unless you immediately explain it in ordinary words.',
+    'Do not write like a textbook or an adult essay. Do not copy technical words from the chapter context.',
+  ].join(' '),
+  Undergrad: 'Write for a technical reader. Be precise about the mechanism, assumptions, and tradeoffs. Use one short paragraph of 90 to 140 words.',
+  Expert: 'Be precise and compact. Skip basics and focus on edge cases, constraints, and decisions. Use one short paragraph of 70 to 140 words.',
 }
 
 const ANSWER_ACTION_RULES = {
-  explain: 'Explain what the highlighted passage means in this chapter and the mechanism behind it. Do not summarize the whole chapter.',
-  simplify: 'Rewrite the idea in plain language without losing its meaning. Define any jargon you must keep.',
+  explain: 'Explain what the highlighted passage means and how it works in this chapter. Do not summarize the whole chapter.',
+  simplify: 'Rewrite the idea in plain language without losing its meaning. Replace or define any technical term you must keep.',
   example: 'Give one concrete example that makes the highlighted passage clear. Use the chapter’s actual components and label it as an example.',
 }
 
@@ -1033,6 +1061,7 @@ async function askNebius({ question, context, quote, level, model, action, webSe
     actionRule
       ? `The reader highlighted a passage. ${actionRule}`
       : 'Answer the reader’s question directly from the chapter context.',
+    'The reading level is a hard constraint, not a tone suggestion. Match the vocabulary, sentence length, and length limit exactly.',
     ANSWER_LEVEL_RULES[level] || ANSWER_LEVEL_RULES.ELI15,
     'The highlighted passage may be a single word or short phrase. Explain that phrase directly, not the whole chapter.',
     'For a highlighted term, use the chapter context first, then your general knowledge, then any web notes. Do not lead with a statement that the chapter does not define it. If the term is new to the chapter, explain what it is.',
@@ -1041,10 +1070,11 @@ async function askNebius({ question, context, quote, level, model, action, webSe
     actionRule
       ? 'If the chapter is insufficient, fill the gap from general knowledge or web notes instead of refusing.'
       : 'Use only the supplied chapter context. If the context does not answer, say what is missing instead of inventing.',
-    'At most two short paragraphs. No markdown, no bullet lists, no em dashes.',
+    'Write one paragraph within the level limit. No markdown, no bullet lists, no headings, no em dashes.',
   ].join(' ')
   const user = [
     `Reading level: ${level || 'ELI15'}.`,
+    `Level rule: ${ANSWER_LEVEL_RULES[level] || ANSWER_LEVEL_RULES.ELI15}`,
     `Selected highlight: ${quote || 'none'}.`,
     'Chapter context:',
     String(context || '').slice(0, 9000),

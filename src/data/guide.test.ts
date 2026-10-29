@@ -44,9 +44,9 @@ describe('seeded guide', () => {
 })
 
 describe('compiled example guide', () => {
-  it('ships a complete eight-chapter guide with diagrams and recall checks', () => {
-    expect(EXAMPLE_GUIDE.chapters).toHaveLength(8)
-    expect(EXAMPLE_GUIDE.diagramCount).toBe(8)
+  it('ships a complete six-chapter guide with diagrams and recall checks', () => {
+    expect(EXAMPLE_GUIDE.chapters).toHaveLength(6)
+    expect(EXAMPLE_GUIDE.diagramCount).toBe(5)
     expect(EXAMPLE_GUIDE.transcript?.length).toBeGreaterThan(1_000)
     expect(EXAMPLE_GUIDE.thumbnail).toBe('/example-modern-ai.jpg')
     expect(
@@ -54,10 +54,14 @@ describe('compiled example guide', () => {
         chapter.blocks.some((block) => block.type === 'diagram' && block.kind === 'loop'),
       ),
     ).toBe(true)
+    expect(
+      EXAMPLE_GUIDE.chapters.filter((chapter) =>
+        chapter.blocks.some((block) => block.type === 'diagram'),
+      ).length,
+    ).toBeGreaterThanOrEqual(5)
     for (const chapter of EXAMPLE_GUIDE.chapters) {
       expect(chapter.title).not.toMatch(/^Chapter \d+$/)
       expect(chapter.blocks.some((block) => block.type === 'p')).toBe(true)
-      expect(chapter.blocks.some((block) => block.type === 'diagram')).toBe(true)
       expect(chapter.blocks.some((block) => block.type === 'recall')).toBe(true)
     }
   })

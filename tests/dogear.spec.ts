@@ -49,7 +49,7 @@ test.describe('desktop', () => {
     await input.fill('https://youtu.be/EsQ_bmXKA4A')
     await page.getByRole('button', { name: 'Compile' }).click()
     await expect(page).toHaveURL(/\/read\/yt-esq_bmxka4a/)
-    await expect(page.getByRole('heading', { name: 'Software 2.0: Turning Examples Into a Learned Program' })).toBeVisible()
+    await expect(page.getByRole('heading', { name: 'Show Many Pictures, Not Every Rule' })).toBeVisible()
   })
 
   test('highlight, source popup, escape, and read view', async ({ page }) => {

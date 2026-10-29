@@ -5,492 +5,344 @@
   "youtubeId": "EsQ_bmXKA4A",
   "thumbnail": "/example-modern-ai.jpg",
   "duration": 4110,
-  "chapterCount": 8,
-  "readMinutes": 9,
-  "diagramCount": 8,
+  "chapterCount": 6,
+  "readMinutes": 6,
+  "diagramCount": 5,
   "webSourceCount": 1,
   "progress": 0.08,
-  "minutesLeft": 8,
+  "minutesLeft": 6,
   "level": "ELI5",
   "purpose": "understand",
-  "guideVersion": 8,
+  "guideVersion": 9,
   "chapters": [
     {
       "id": "chapter-1",
       "number": 1,
-      "title": "Software 2.0: Turning Examples Into a Learned Program",
-      "short": "Data Engine",
-      "deck": "Software 2.0 compiles examples into learned weights, and a data engine keeps feeding it harder examples.",
+      "title": "Show Many Pictures, Not Every Rule",
+      "short": "Examples beat rules",
+      "deck": "Messy jobs need many examples, not exact steps.",
       "start": 0,
-      "end": 419,
+      "end": 420,
       "readMinutes": 1,
       "diagramCount": 1,
       "keyPoints": [
-        "Software 1.0 writes explicit steps, but cat recognition, chess, autopilot, and AGI are hard to spell out by hand.",
-        "Software 2.0 treats a dataset as source code and training as the compiler that produces weights.",
-        "The data engine loops through training, deployment, collecting hard examples, labeling, and retraining.",
-        "Software 2.0 layers on top of Software 1.0 instead of replacing all hand-written code."
+        "Old helpers followed exact steps.",
+        "Some jobs are too messy for exact steps.",
+        "Many examples let the helper practice.",
+        "Tricky examples help the helper get better."
       ],
       "blocks": [
         {
           "type": "p",
-          "text": "Software 1.0 is like writing a recipe. You tell the computer every step. That works for big hand-built systems like Linux. But some jobs are too messy for a recipe. A cat can look many ways. A chess game, an autopilot, and AGI are also hard to spell out as explicit instructions. That is why a new way was needed."
+          "text": "Imagine a helper finding cats in a picture book. You could list steps: pointy ears, whiskers, tail. But cats curl up, hide, and come in many colors. Exact steps miss too many cats."
         },
         {
           "type": "p",
-          "text": "Software 2.0 flips the job around. You show many examples, and training compiles the dataset into weights. The weights are the learned program, and you cannot write them by hand. Karpathy calls this a new programming stack, not just another classifier. He also calls the repeating data loop the data engine, and he spent about five years on it at Tesla. You train a net, deploy it, watch how it performs, collect examples it finds troubling, label them, and feed them back. Some labeled data goes to test sets, some to training. Then you spin the cycle again. This does not erase Software 1.0. You still need lots of hand-written code to run training and deployment. Software 2.0 layers on top."
+          "text": "So you show the helper many pictures instead. You say 'cat' or 'not cat.' The helper practices and makes guesses. When it misses a tricky cat, show that picture too. More examples help it get better."
         },
         {
           "type": "callout",
           "label": "Mental model",
-          "text": "Dataset is source code, training is the compiler, and weights are the program."
+          "text": "For messy jobs, examples teach better than long step lists."
         },
         {
           "type": "diagram",
-          "kind": "loop",
-          "title": "The Data Engine Loop",
-          "caption": "A repeating cycle that turns examples into a better learned program.",
-          "center": "Data engine",
+          "kind": "compare",
+          "title": "Two ways to teach a helper",
+          "caption": "Exact steps work for clear jobs. Many examples work for messy jobs.",
           "items": [
             {
-              "label": "Train neural net",
-              "detail": "Compile dataset into weights"
+              "label": "Write every step",
+              "detail": "Works when the job is clear and exact"
             },
             {
-              "label": "Deploy and monitor",
-              "detail": "Watch how it performs"
-            },
-            {
-              "label": "Collect hard examples",
-              "detail": "Find cases it struggles with"
-            },
-            {
-              "label": "Label and retrain",
-              "detail": "Add labels, spin cycle again"
+              "label": "Show many examples",
+              "detail": "Works when the job is messy, like finding cats"
             }
           ]
         },
         {
           "type": "recall",
-          "question": "In Software 2.0, what plays the role of the program, and how is it made?",
-          "answer": "The neural network weights are the program. They are made by training on a dataset, not by writing instructions by hand."
+          "question": "Why show many pictures instead of only rules?",
+          "answer": "Some jobs are too messy for exact rules. Many examples let the helper practice and get better."
         }
       ]
     },
     {
       "id": "chapter-2",
       "number": 2,
-      "title": "Prompting Steers the Next-Word Predictor",
-      "short": "Prompting the Predictor",
-      "deck": "A next-word predictor writes by guessing and feeding guesses back, so a prompt steers it toward the right kind of answer.",
-      "start": 419,
-      "end": 674,
+      "title": "Ask the Helper the Right Way",
+      "short": "Ask It Right",
+      "deck": "The way you ask changes what the helper guesses next.",
+      "start": 420,
+      "end": 1260,
       "readMinutes": 1,
       "diagramCount": 1,
       "keyPoints": [
-        "The model predicts the next word and feeds each guess back in to generate text.",
-        "Few-shot examples condition the model to continue a task pattern.",
-        "Step-by-step prompts give the model more tokens to think and raise accuracy."
+        "The helper guesses the next word again and again.",
+        "A few examples show the helper the pattern you want.",
+        "Step-by-step words help with tricky questions.",
+        "A pretend role can make a fake screen or house brain."
       ],
       "blocks": [
         {
           "type": "p",
-          "text": "A large language model is a next-word guesser. It reads a lot of internet text and learns what word tends to come next. To write, it guesses one word, puts that guess back in, and guesses again. That is how a poem or an answer comes out."
+          "text": "Think of a helper who finishes your sentences. It guesses the next word, then the next. It keeps going until it makes a whole answer."
         },
         {
           "type": "p",
-          "text": "A prompt is like showing the model a sample page before asking it to fill in the rest. A few question-answer examples condition it to continue that Q&A pattern. For a math problem, asking straight for the answer can make it blurt out a wrong number. Asking it to think step by step gives it more tokens to work through the problem. Asking it to work step by step to be sure it has the right answer helps even more, because the model imitates a careful solver who reaches the correct answer. In the lecture, step-by-step raised accuracy from 17% to 78.7%, and adding the right-answer wording reached 82%. Without that steering, it imitates the average internet answer, like asking a random crowd why it rains. Asking for a very smart person's answer narrows the slice."
+          "text": "The ask is like giving a picture book example. Show two or three examples, and the helper copies the pattern. Ask a tricky question plainly, and it may grab the first answer. Say go step by step, and it slows down. Say be sure you are right, and it does even better."
+        },
+        {
+          "type": "p",
+          "text": "You can also ask it to pretend. It can act like a fake screen. It can act like a house brain. It can act like a to-do list. The pretend job tells it what kind of answer to make."
         },
         {
           "type": "callout",
           "label": "Mental model",
-          "text": "A prompt is a sample of the kind of answer you want the model to continue."
+          "text": "The ask is a set of clues that points the helper to the answer you want."
         },
         {
           "type": "diagram",
-          "kind": "compare",
-          "title": "Naive vs Step-by-Step Prompting",
-          "caption": "The same model can fail or succeed depending on how the prompt frames the task.",
+          "kind": "loop",
+          "title": "The Guess Again Loop",
+          "caption": "The helper keeps guessing and adding words after your ask.",
+          "center": "Next word",
           "items": [
             {
-              "label": "Naive prompt",
-              "detail": "Model answers eight, which is incorrect"
+              "label": "Guess next word",
+              "detail": "It picks the next word in the story."
             },
             {
-              "label": "Step-by-step prompt",
-              "detail": "Model breaks problem into steps, higher accuracy"
+              "label": "Add the word",
+              "detail": "The new word becomes part of the answer."
+            },
+            {
+              "label": "Guess again",
+              "detail": "It uses the new word to guess once more."
+            },
+            {
+              "label": "Add again",
+              "detail": "The answer gets longer with each new word."
             }
           ]
         },
         {
           "type": "recall",
-          "question": "Why can a step-by-step prompt make a model better at math?",
-          "answer": "It gives the model more tokens to work through the problem, and it conditions the model to imitate a careful solution that reaches the right answer."
+          "question": "Why can the same helper answer a tricky question better after you say go step by step?",
+          "answer": "It gets to make smaller guesses one after another. That gives it more chances to reach the right answer."
         }
       ]
     },
     {
       "id": "chapter-3",
       "number": 3,
-      "title": "Prompts Build Pretend Machines",
-      "short": "Prompt as Simulator",
-      "deck": "A prompt can set up a pretend terminal, smart home, backend, or chatbot inside the model.",
-      "start": 674,
-      "end": 1154,
+      "title": "A helper can use a notebook and call on experts",
+      "short": "Notebook and experts",
+      "deck": "The same helper can write notes outside its head, ask special experts, and take in pictures or sounds as pieces.",
+      "start": 1260,
+      "end": 1800,
       "readMinutes": 1,
-      "diagramCount": 1,
+      "diagramCount": 0,
       "keyPoints": [
-        "A prompt can tell the model to act as a Linux terminal and invent files.",
-        "A smart home prompt describes rooms and devices, then returns JSON actions.",
-        "A hackathon backend uses one LLM to update JSON state without Python route code.",
-        "The alleged Sydney prompt shows a chatbot persona and safety rules written in plain text."
+        "A short memory can be helped by writing notes in a notebook.",
+        "Special expert helpers can be good at one thing, like health or law.",
+        "Pictures can be chopped into small squares and fed in as pieces.",
+        "Sounds can be chopped into small slices and fed in as pieces."
       ],
       "blocks": [
         {
           "type": "p",
-          "text": "Imagine telling a friend, you are a computer terminal. ChatGPT can do that. You type PWD, it says slash. You ask for a home folder, it invents one. You ask it to make jokes.txt, it pretends to create the file and later remembers the jokes. No real Linux is running. The prompt sets the role and rules, and the model predicts what a terminal would show next."
+          "text": "The helper can be extended with outside notes and special helpers, and it can treat many kinds of input as pieces in one big set."
         },
         {
           "type": "p",
-          "text": "The same trick works for other pretend systems. A smart home prompt lists rooms, lights, and a JSON format. Ask it to turn off the bedroom light in 20 minutes, and it returns a JSON command with a future timestamp. A hackathon backend goes further: the LLM reads JSON app state and a request, then returns new state and a response, so there is no Python route code. The alleged Sydney prompt does the same for a chatbot: plain text describes its name, style, limits, and safety rules."
+          "text": "A short memory can be helped by writing notes in a notebook."
         },
         {
           "type": "callout",
-          "label": "Mental model",
-          "text": "A prompt is like a script for a pretend world: it gives the model a role, rules, and a stage."
-        },
-        {
-          "type": "diagram",
-          "kind": "flow",
-          "title": "Prompt to Simulated Output",
-          "caption": "The prompt sets rules, the model simulates, and the reply looks like a real system.",
-          "items": [
-            {
-              "label": "Prompt sets rules",
-              "detail": "Text describes role, state, and output format"
-            },
-            {
-              "label": "Model simulates",
-              "detail": "No real computer or app is running"
-            },
-            {
-              "label": "Reply appears",
-              "detail": "Terminal text, JSON action, or persona answer"
-            }
-          ]
+          "label": "What to remember",
+          "text": "The same helper can write notes outside its head, ask special experts, and take in pictures or sounds as pieces."
         },
         {
           "type": "recall",
-          "question": "Why can ChatGPT act like a Linux terminal even though no computer is running?",
-          "answer": "The prompt tells it to play a terminal, and it predicts plausible terminal outputs while keeping its invented files in context. It is simulating a system, not actually running Linux."
+          "question": "Can you explain “A helper can use a notebook and call on experts” without looking?",
+          "answer": "A short memory can be helped by writing notes in a notebook."
         }
       ]
     },
     {
       "id": "chapter-4",
       "number": 4,
-      "title": "Software 3.0: English Is the Programming Language",
-      "short": "English as Code",
-      "deck": "A GPT is a general computer you reprogram with plain English prompts instead of new code.",
-      "start": 1154,
-      "end": 1453,
+      "title": "One Building Pattern and a Peek-Back Trick",
+      "short": "One Pattern Wins",
+      "deck": "A single building pattern replaced many fussy helpers, and a peek-back trick fixed a squeeze.",
+      "start": 1800,
+      "end": 2400,
       "readMinutes": 1,
       "diagramCount": 1,
       "keyPoints": [
-        "Software 1.0 designs algorithms, software 2.0 designs datasets, and software 3.0 designs prompts.",
-        "A GPT is a general purpose computer reconfigured at runtime by natural language programs.",
-        "Prompting mirrors instructing humans, but external memory and domain expert models are still missing."
+        "Old helpers used many special clues and still made silly mistakes.",
+        "One simple pattern got better when it saw many examples.",
+        "Turning English into French squished the whole sentence into one tiny pocket.",
+        "Letting each French word peek back at English words helped a lot."
       ],
       "blocks": [
         {
           "type": "p",
-          "text": "Think of a toy robot that can play many games. You do not rebuild the robot. You hand it a note that says which game to play. Karpathy says a GPT is like a general purpose computer that can be reconfigured while it is running. The note is the prompt. The prompt is a natural language program. The GPT runs it by completing the document. That is why he says the hottest new programming language is English."
+          "text": "Long ago, people made a special helper for each job. Each helper needed many hand-made clues. It still made silly mistakes."
         },
         {
           "type": "p",
-          "text": "This is the Software 3.0 shift. Software 1.0 was writing the algorithm yourself. Software 2.0 was designing the dataset so a neural network learned. Software 3.0 is designing the prompt that conditions a large language model. He also says prompting is how we program humans: we give people instructions. The technology is converging toward that. But he names missing pieces: long term external memory, like a notebook, and smaller expert models for domains such as health or law."
+          "text": "Then people found one simple building pattern. Show it many examples, and it can do many jobs. Next came English to French. The helper tried to hold the whole English sentence in one tiny pocket. That was too much, so words got squished. The fix was a peek-back trick. While saying each French word, the helper looked back at the English words. That helped a lot."
         },
         {
           "type": "callout",
           "label": "Mental model",
-          "text": "A prompt is an instruction sheet, not just a question, and it turns one general GPT into a specific tool for the moment."
+          "text": "One good building pattern can do many jobs, and peeking back beats squishing everything into one pocket."
         },
         {
           "type": "diagram",
-          "kind": "flow",
-          "title": "Prompt Runs a Program",
-          "caption": "The prompt is the program, and the GPT executes it by completing text.",
+          "kind": "compare",
+          "title": "Two ways to carry a sentence",
+          "caption": "The pocket was too small; peeking back gave each word what it needed.",
           "items": [
             {
-              "label": "Write prompt",
-              "detail": "Plain English sets the task"
+              "label": "Tiny pocket",
+              "detail": "Whole sentence squished into one spot"
             },
             {
-              "label": "GPT reads it",
-              "detail": "Model completes the document"
-            },
-            {
-              "label": "Task runs",
-              "detail": "Same model, new behavior"
+              "label": "Peek back",
+              "detail": "Each French word looks at English words"
             }
           ]
         },
         {
           "type": "recall",
-          "question": "Why is a GPT called a reconfigurable computer?",
-          "answer": "Because the same model can be given different prompts at runtime. Each prompt acts like a natural language program that makes the model complete a different task without retraining."
+          "question": "Why did the helper need to look back at the English words?",
+          "answer": "The whole English sentence was too much to hold in one tiny pocket. Looking back let each French word use the right English words."
         }
       ]
     },
     {
       "id": "chapter-5",
       "number": 5,
-      "title": "Transformers Turn Many Data Types Into Tokens",
-      "short": "Tokenize Anything",
-      "deck": "A transformer chops images, audio, and even driving data into tokens, then uses attention to mix them.",
-      "start": 1453,
-      "end": 1829,
+      "title": "Pieces Ask, Offer, and Share Notes",
+      "short": "Ask, Offer, Share",
+      "deck": "Each piece asks, offers, matches, shares, and mixes notes.",
+      "start": 2400,
+      "end": 3000,
       "readMinutes": 1,
       "diagramCount": 1,
       "keyPoints": [
-        "Images become patches, audio becomes mel slices, and reinforcement learning becomes state, action, and reward sequences.",
-        "Extra sensors like radar or vehicle type can enter as special tokens, and attention learns how to use them.",
-        "Attention works on sets, so position encodings and masks add structure when needed.",
-        "AlphaFold uses a transformer at its computational heart."
+        "Each piece keeps its own private note.",
+        "It makes an ask and an offer.",
+        "A close match decides who shares.",
+        "Shared notes get mixed into the piece."
       ],
       "blocks": [
         {
           "type": "p",
-          "text": "A transformer does not need a special shape for every kind of data. You chop the input into small pieces, turn each piece into a token, and let attention mix the tokens. An image becomes little squares. Audio becomes slices of a mel spectrogram. A reinforcement learning run becomes a sequence of states, actions, and rewards. This is why one basic recipe can work across so many fields."
+          "text": "Think of each piece like a kid at sticker time. Each kid keeps a private sticker sheet. The sheet is the piece's own note."
         },
         {
           "type": "p",
-          "text": "Attention treats the tokens as a set, so it does not know order or source by itself. You add position signals, or special tokens, to tell it where a piece came from. At Tesla, radar or vehicle type can be added as special tokens, and the model learns how to use them. If you have lots of data, it is usually better to let the model learn structure than to hardwire it. Masks can also stop tokens from talking to everyone, which adds structure when you want it."
+          "text": "The kid says, I want a star. That is the ask. The kid says, I can share a moon. That is the offer. Another kid has a star and wants a moon. That is a close match. They share. Each kid puts the new sticker on their own sheet. Then each kid looks at their own sheet alone. This helps each piece get helpful notes. Then it can think with a fuller note."
         },
         {
           "type": "callout",
-          "label": "Mental model",
-          "text": "Think of attention as a mixing bowl where position tags and type tags tell each token where it belongs."
+          "label": "Try it",
+          "text": "A close match means each kid has what the other wants."
         },
         {
           "type": "diagram",
           "kind": "flow",
-          "title": "Tokenize Anything, Then Mix",
-          "caption": "Each input becomes tokens, then attention mixes the set.",
+          "title": "How a Piece Shares Notes",
+          "caption": "Each piece asks, offers, matches, shares, and mixes notes.",
           "items": [
             {
-              "label": "Image",
-              "detail": "Chop into little squares"
+              "label": "Private note",
+              "detail": "Each piece keeps its own note."
             },
             {
-              "label": "Audio",
-              "detail": "Slice mel spectrogram into pieces"
+              "label": "Ask and offer",
+              "detail": "It says what it wants and can share."
             },
             {
-              "label": "RL",
-              "detail": "States, actions, rewards as sequence"
+              "label": "Close match",
+              "detail": "A good fit decides who shares."
             },
             {
-              "label": "Sensors",
-              "detail": "Radar or vehicle type special tokens"
+              "label": "Mix notes",
+              "detail": "Each piece adds what it got."
             }
           ]
         },
         {
           "type": "recall",
-          "question": "Why can a transformer use radar data even though radar is not text?",
-          "answer": "Because you can chop radar into tokens and add a special type token so attention knows it came from radar. The model then learns from data how much to use it."
+          "question": "How does a piece decide who shares notes with it?",
+          "answer": "It makes an ask and an offer. A close match decides who shares, then it mixes notes in."
         }
       ]
     },
     {
       "id": "chapter-6",
       "number": 6,
-      "title": "Attention: A Soft Search Around a Translation Bottleneck",
-      "short": "Soft Search",
-      "deck": "Attention grew from a translation bottleneck by letting the decoder look back at source words while it writes each target word.",
-      "start": 1829,
-      "end": 2350,
-      "readMinutes": 1,
-      "diagramCount": 1,
-      "keyPoints": [
-        "A 2014 translation model squeezed the whole source sentence into one vector.",
-        "Attention let the decoder softly search source words while decoding.",
-        "That soft search became the heart of the transformer."
-      ],
-      "blocks": [
-        {
-          "type": "p",
-          "text": "Imagine translating a whole English sentence into French. A 2014 model used an encoder to read the English words one by one, then packed everything it read into one vector. The decoder had to write French from that single vector. This was the encoder bottleneck: too much information had to fit in one small package, like telling a friend an entire story in one breath before they translate it."
-        },
-        {
-          "type": "p",
-          "text": "Attention fixed this by letting the decoder look back at the source words while it writes each target word. For every next French word, the model gives each English word a match score, turns those scores into weights, and makes a weighted blend of the source information. This is a soft search, not a hard pick of one word. The idea was inspired by a student translating: your eyes move back and forth between the source sentence and the target sentence."
-        },
-        {
-          "type": "callout",
-          "label": "Mental model",
-          "text": "Attention is a soft spotlight that moves over the source words while the decoder writes each target word."
-        },
-        {
-          "type": "diagram",
-          "kind": "flow",
-          "title": "From Bottleneck to Soft Search",
-          "caption": "The encoder bottleneck forced one vector. Attention let the decoder look back at source words.",
-          "items": [
-            {
-              "label": "Encoder reads sentence",
-              "detail": "Reads source words one at a time"
-            },
-            {
-              "label": "Single vector bottleneck",
-              "detail": "Whole sentence packed into one vector"
-            },
-            {
-              "label": "Decoder soft searches",
-              "detail": "Looks back at source words while decoding"
-            },
-            {
-              "label": "Attention weights",
-              "detail": "Scores become weights for a weighted blend"
-            }
-          ]
-        },
-        {
-          "type": "recall",
-          "question": "Why did attention help the encoder-decoder translation model?",
-          "answer": "The single vector bottleneck lost too much information. Attention let the decoder look back and softly search the source words for each target word, using a weighted blend instead of one fixed summary."
-        }
-      ]
-    },
-    {
-      "id": "chapter-7",
-      "number": 7,
-      "title": "Attention Is Message Passing Between Tokens",
-      "short": "Token Message Passing",
-      "deck": "Attention lets tokens ask, match, and send messages on a directed graph.",
-      "start": 2350,
-      "end": 3058,
-      "readMinutes": 1,
-      "diagramCount": 1,
-      "keyPoints": [
-        "Attention deletes the RNNs and keeps attention, then adds positional encodings, residuals, layer norms, and multiple heads.",
-        "Each node sends a query, neighbors advertise keys, and values carry the message.",
-        "Dot products score matches, softmax normalizes the scores, and a weighted sum updates the node.",
-        "Multi-head attention runs the same message passing in parallel with different weights."
-      ],
-      "blocks": [
-        {
-          "type": "p",
-          "text": "Start with a graph. Each node holds a private vector. A directed edge means one node can send to another. Attention is the communication step. Each node makes a query, a key, and a value from its vector using learned math. The query says what I want. The key says what I have. The value says what I will send."
-        },
-        {
-          "type": "p",
-          "text": "To update one node, look at the neighbors that point to it. They broadcast their keys. The node has its query. Dot products score how well each key matches the query. Softmax turns those scores into shares that sum to one. Then the node takes a weighted sum of the neighbors values. That mixed message updates the node. Do this for every node."
-        },
-        {
-          "type": "p",
-          "text": "This is why attention is not just a fuzzy idea. It is data-dependent message passing. The edges decide who can talk. The learned weights decide what each node asks for and what it sends. Multi-head attention runs this same chat in parallel with different learned weights. Layers repeat it in series. Self-attention means keys and values come from the same nodes. Cross-attention means keys and values come from an outside source like an encoder."
-        },
-        {
-          "type": "callout",
-          "label": "Mental model",
-          "text": "Attention is a graph chat: each node asks, listens, and updates its notebook."
-        },
-        {
-          "type": "diagram",
-          "kind": "flow",
-          "title": "One Attention Round",
-          "caption": "A node asks, scores neighbors, normalizes, and updates.",
-          "items": [
-            {
-              "label": "Query",
-              "detail": "What this node is looking for"
-            },
-            {
-              "label": "Keys",
-              "detail": "What neighbor nodes advertise they have"
-            },
-            {
-              "label": "Dot products",
-              "detail": "Score how well query matches each key"
-            },
-            {
-              "label": "Softmax",
-              "detail": "Turn scores into shares that sum to one"
-            },
-            {
-              "label": "Weighted sum",
-              "detail": "Mix neighbor values into an update"
-            }
-          ]
-        },
-        {
-          "type": "recall",
-          "question": "In one attention round, what do the query, keys, and values each do?",
-          "answer": "The query says what a node wants. Keys say what neighbors have. Values are the messages that get mixed by the softmax weights and added to the node."
-        }
-      ]
-    },
-    {
-      "id": "chapter-8",
-      "number": 8,
-      "title": "Causal Attention and the Guess-and-Append Loop",
-      "short": "Guess and Append",
-      "deck": "NanoGPT shows how a decoder-only transformer listens only to the past and then generates text by repeating one small prediction loop.",
-      "start": 3058,
+      "title": "The helper guesses the next sticker",
+      "short": "Guess next sticker",
+      "deck": "Letters become numbers, short lines are shown, and the helper guesses the next sticker without peeking ahead.",
+      "start": 3000,
       "end": 4110,
-      "readMinutes": 2,
+      "readMinutes": 1,
       "diagramCount": 1,
       "keyPoints": [
-        "NanoGPT is a readable 300-line decoder-only transformer trained on Tiny Shakespeare.",
-        "Each token may attend only to earlier tokens and itself, so the mask blocks future answers.",
-        "The mask sets future attention scores to negative infinity before softmax, making their weight zero.",
-        "Generation predicts one token, appends it, and crops the context to the block size."
+        "Each letter gets a number sticker.",
+        "The helper sees a short line of stickers.",
+        "It guesses the next sticker in the line.",
+        "It can look back, but not ahead."
       ],
       "blocks": [
         {
           "type": "p",
-          "text": "A decoder-only transformer is a next-token guesser. In NanoGPT, text becomes integers, gets cut into chunks, and each chunk trains the model to predict the next integer. With block size eight, the model gets up to eight characters of context to guess the ninth. The targets are just the inputs shifted by one, so the answer for one position is already sitting at the next position. That is why causal self-attention must be one-way. Imagine a line of kids each guessing the next word. Each kid may whisper to kids before them and to themselves, but a teacher covers all later words with a black sheet. The mask is that sheet. It makes future attention scores so low that after softmax they become zero. Then the MLP does the compute phase, processing each token on its own."
+          "text": "Think of a long train of letter blocks. We put a number sticker on each block. The helper reads a short line of these stickers. It tries to guess the next sticker."
         },
         {
           "type": "p",
-          "text": "After training, generation is a small loop. Start with a token, like a newline. The model predicts a probability distribution for the next integer. Pick one, turn it back into a character, and append it. Now the model has one more token of context. Repeat. When the context reaches block size eight, crop the oldest token so the model never sees more than eight. That is why a naive transformer has a finite window. It keeps guessing and feeding its own guesses back in."
+          "text": "The helper practices with many short lines. Each line has a next sticker hidden under a curtain. The helper looks at the stickers behind and guesses. It never sees the sticker ahead. If the line gets long, it keeps the last few stickers. That is how it learns to make a story."
+        },
+        {
+          "type": "callout",
+          "label": "Common mistake",
+          "text": "A curtain hides the next sticker, so the helper cannot peek."
         },
         {
           "type": "diagram",
-          "kind": "loop",
-          "title": "Generation loop",
-          "caption": "After the start token, NanoGPT repeats these four steps to make text.",
-          "center": "Generation loop",
+          "kind": "flow",
+          "title": "How the helper guesses",
+          "caption": "A short line goes in, one next sticker comes out.",
           "items": [
             {
-              "label": "Predict next",
-              "detail": "Model scores the next integer"
+              "label": "Letters to numbers",
+              "detail": "Each letter gets a number sticker."
             },
             {
-              "label": "Decode token",
-              "detail": "Pick one integer and turn it into text"
+              "label": "Short block line",
+              "detail": "The helper sees a small line of stickers."
             },
             {
-              "label": "Append token",
-              "detail": "Add the new token to the context"
+              "label": "Guess next",
+              "detail": "It picks the sticker that comes next."
             },
             {
-              "label": "Crop context",
-              "detail": "Keep only the last block-size tokens"
+              "label": "No peeking",
+              "detail": "It may look back, never ahead."
             }
           ]
         },
         {
-          "type": "callout",
-          "label": "Mental model",
-          "text": "Causal attention is a one-way conversation: each token may listen to earlier tokens and itself, never to later tokens."
-        },
-        {
           "type": "recall",
-          "question": "Why does a decoder-only transformer need a mask during training?",
-          "answer": "Because each target is the next token, which already appears later in the input sequence. Without the mask, a token could attend to that future answer and cheat instead of learning to predict."
+          "question": "Why can't the helper peek at the next sticker?",
+          "answer": "A curtain hides every sticker ahead. Peeking would let it copy, so it would not learn."
         }
       ]
     }
@@ -9819,15 +9671,15 @@
       "published": "Live",
       "readTime": "Video",
       "url": "https://www.youtube.com/watch?v=EsQ_bmXKA4A",
-      "usedFor": "A simple mental model of how Karpathy explains the move from hand-written code to data-trained neural nets and prompt-driven language models.",
+      "usedFor": "A clear picture of how a big word guesser learns from examples and follows plain English asks.",
       "extract": [
-        "A simple mental model of how Karpathy explains the move from hand-written code to data-trained neural nets and prompt-driven language models."
+        "A clear picture of how a big word guesser learns from examples and follows plain English asks."
       ],
       "keyPoints": [
-        "Software 1.0 writes explicit steps, but cat recognition, chess, autopilot, and AGI are hard to spell out by hand.",
-        "Software 2.0 treats a dataset as source code and training as the compiler that produces weights.",
-        "The data engine loops through training, deployment, collecting hard examples, labeling, and retraining.",
-        "Software 2.0 layers on top of Software 1.0 instead of replacing all hand-written code."
+        "Old helpers followed exact steps.",
+        "Some jobs are too messy for exact steps.",
+        "Many examples let the helper practice.",
+        "Tricky examples help the helper get better."
       ],
       "more": [
         {

@@ -20,6 +20,7 @@ interface Term {
   term: string
   definition: string
   simple: string
+  kid: string
   example: string
   why: string
 }
@@ -31,6 +32,8 @@ const TERMS: Term[] = [
       'LLM-D is an open-source distributed inference system for serving large language models across multiple workers. It separates prefill and decode into different pools and routes requests with cache locality in mind.',
     simple:
       'LLM-D is a way to run a large language model across several machines so more people can use it. It keeps the cached prompt close to the worker that needs it.',
+    kid:
+      'A bunch of computers share one big job, like friends carrying a heavy box together.',
     example:
       'One pool reads a long prompt and builds the KV cache. Another pool writes the answer. The router sends the request to the worker that already has the matching cache.',
     why: 'The system around the model becomes a routing and memory problem, not just a model problem.',
@@ -41,6 +44,8 @@ const TERMS: Term[] = [
       'A POST request is an HTTP request that sends data to a server. In this chapter, the dashboard sends a POST request to the vLLM server to pull live inference metrics.',
     simple:
       'A POST request is a message an app sends to a server to ask it to do something or return fresh data.',
+    kid:
+      'A note your app sends to ask a computer for something.',
     example:
       'The dashboard sends a POST request to the vLLM server, receives the current token throughput, and places that number beside the benchmark comparison.',
     why: 'It turns the dashboard from a static report into a live operational signal.',
@@ -51,6 +56,8 @@ const TERMS: Term[] = [
       'Retrieval augmented generation looks up relevant passages from a knowledge source, then gives those passages to a language model alongside the question.',
     simple:
       'RAG is a way to give a model an open-book lookup before it answers, instead of relying only on what it memorized during training.',
+    kid:
+      'The answer helper looks something up in a book before it answers.',
     example:
       'A question is turned into a search query, relevant PDF chunks are retrieved, and the model answers from those chunks rather than from memory alone.',
     why: 'It lets the model answer over fresh or private material it was not trained on.',
@@ -61,6 +68,8 @@ const TERMS: Term[] = [
       'The KV cache stores the attention keys and values for tokens the model has already processed, so decode can reuse them instead of rebuilding the prompt for each new token.',
     simple:
       'The KV cache is the model’s notes from reading a prompt once. It reuses those notes for each new word.',
+    kid:
+      'The answer helper writes down what it read so it does not have to read it again.',
     example:
       'Prefill reads a long prompt and saves its keys and values. Decode reads that cache instead of re-reading the whole prompt for the next token.',
     why: 'It moves the serving bottleneck from repeated computation to memory capacity.',
@@ -70,6 +79,8 @@ const TERMS: Term[] = [
     definition:
       'Prefill processes the prompt in parallel and builds the KV cache. It is compute-heavy and happens once per prompt.',
     simple: 'Prefill is the model reading the whole prompt before it starts writing.',
+    kid:
+      'The helper reads your whole question before it starts to answer.',
     example: 'A long document is read in one parallel pass, then its cached state is ready for the first generated token.',
     why: 'It explains the pause before a chat response starts streaming.',
   },
@@ -78,6 +89,8 @@ const TERMS: Term[] = [
     definition:
       'Decode generates one token per forward pass and reuses the KV cache. It is memory-bandwidth-bound rather than compute-bound.',
     simple: 'Decode writes one word at a time, using the notes the model already saved.',
+    kid:
+      'The helper writes the answer one word at a time.',
     example: 'The model writes token after token, reading the cached keys and values for the tokens already produced.',
     why: 'It explains why the steady stream of a response is limited by memory traffic.',
   },
@@ -86,6 +99,8 @@ const TERMS: Term[] = [
     definition:
       'vLLM is a serving engine for large language models. It schedules requests and uses paged KV cache management to share and reclaim GPU memory.',
     simple: 'vLLM is the traffic controller between many requests and the GPU.',
+    kid:
+      'A traffic cop that sends many questions to the computers.',
     example: 'It packs multiple conversations into a batch, pages their KV caches, and reclaims memory when a request finishes.',
     why: 'It is where batching, latency, and memory policy meet.',
   },
@@ -94,6 +109,8 @@ const TERMS: Term[] = [
     definition:
       'Batching puts multiple requests through the GPU together so it has more work to do between token steps. It can improve throughput while increasing the wait for any one request.',
     simple: 'Batching lets the GPU serve several people at once instead of waiting on one conversation.',
+    kid:
+      'Doing several chores in one trip instead of one at a time.',
     example: 'Four users ask questions at the same time; their decode steps are grouped into one larger GPU pass.',
     why: 'It is a throughput lever, not a latency cure.',
   },
@@ -102,6 +119,8 @@ const TERMS: Term[] = [
     definition:
       'Sharding splits a model that does not fit on one GPU across multiple devices. Tensor parallelism splits the math in a layer; pipeline parallelism splits layers into stages.',
     simple: 'Sharding breaks a giant model into pieces so several GPUs can hold it.',
+    kid:
+      'Cutting a giant puzzle into pieces so several tables can hold it.',
     example: 'One layer’s matrix is split across four GPUs, and each device computes its slice before the results are combined.',
     why: 'It makes a large model fit, but adds communication cost.',
   },
@@ -110,6 +129,8 @@ const TERMS: Term[] = [
     definition:
       'A prefix cache reuses the KV cache for an exact prompt prefix. A cache hit skips prefill for that shared prefix; a changed opening text causes a miss.',
     simple: 'A prefix cache remembers the start of a prompt so the model does not read it again.',
+    kid:
+      'Remembering the start of a story so you do not have to reread it.',
     example: 'Two requests share the same system prompt. The second one reuses the cached prefix and prefills only its new question.',
     why: 'It makes shared context cheaper, but routing has to preserve locality.',
   },
@@ -123,15 +144,14 @@ function findTerm(quote: string): Term | null {
 
 const EXPLAIN: Record<Level, Omit<HighlightContent, 'chips'>> = {
   ELI5: {
-    title: 'It keeps its notes.',
-    body: 'Reading the whole prompt is the slow part. The cache is the model’s notes from that first read. It uses the notes instead of reading the prompt again.',
-    why: 'That is why the first word can take a moment and the rest start to flow.',
-    math: 'Each saved token keeps a key and a value, so the model does not have to make them again.',
+    title: 'It remembers the question.',
+    body: 'A helper reads your whole question once and keeps a little note. Later, it uses the note instead of reading the question again. That saves time.',
+    why: 'The first word can feel slow because the helper is reading. The next words come faster because it already has the note.',
   },
   ELI15: {
-    title: "The model's scratch pad.",
-    body: "Prefill reads the prompt and saves the work. Decode reuses it for every new token, so the model doesn't start over.",
-    why: 'The cache is why the first token feels slow and the rest feel fast.',
+    title: "The helper's notes.",
+    body: 'The helper reads your whole question once and saves the important notes. Then it uses those notes for each new word instead of rereading the whole question. That is why the first word is slower than the rest.',
+    why: 'The first word is slow because the helper is reading. Later words come faster because it reuses the notes.',
     math: 'KV bytes ≈ 2 × layers × KV heads × head size × context × batch × precision.',
   },
   Undergrad: {
@@ -159,8 +179,15 @@ export function getHighlightContent(
   if (term) {
     return {
       title: quoteTitle(_quote),
-      body: action === 'simplify' ? term.simple : action === 'example' ? term.example : term.definition,
-      why: chapter?.keyPoints[0] || term.why,
+      body:
+        action === 'example'
+          ? term.example
+          : level === 'ELI5'
+            ? term.kid
+            : action === 'simplify' || level === 'ELI15'
+              ? term.simple
+              : term.definition,
+      why: level === 'ELI5' ? undefined : term.why || chapter?.keyPoints[0],
       chips: ['ELI5', 'ELI15'],
     }
   }
@@ -175,7 +202,7 @@ export function getHighlightContent(
       return {
         title: quoteTitle(_quote),
         body: `${chapter.deck}${focusText ? ` ${focusText}` : ` ${points.join(' ')}`}`,
-        why: points[1] ?? points[0],
+        why: level === 'ELI5' || level === 'ELI15' ? undefined : points[1] ?? points[0],
         chips: ['ELI5', 'ELI15'],
       }
     }
@@ -183,14 +210,14 @@ export function getHighlightContent(
       return {
         title: quoteTitle(_quote),
         body: `${chapter.deck} ${points[0]}`,
-        why: points[1] ?? points[0],
+        why: level === 'ELI5' || level === 'ELI15' ? undefined : points[1] ?? points[0],
         chips: ['ELI5', 'ELI15'],
       }
     }
     return {
       title: quoteTitle(_quote),
       body: `Here is the idea in one request. ${points[0]} ${points[1] ?? ''}`.trim(),
-      why: points[2] ?? points[0],
+      why: level === 'ELI5' || level === 'ELI15' ? undefined : points[2] ?? points[0],
       chips: ['ELI5', 'ELI15'],
     }
   }
@@ -199,7 +226,12 @@ export function getHighlightContent(
     return {
       ...EXPLAIN[level],
       title: quoteTitle(_quote),
-      chips: level === 'ELI15' ? ['ELI5', 'ELI22', 'Show the math'] : ['ELI5', 'ELI15', 'Show the math'],
+      chips:
+        level === 'ELI5'
+          ? ['ELI5', 'ELI15']
+          : level === 'ELI15'
+            ? ['ELI5', 'ELI22', 'Show the math']
+            : ['ELI5', 'ELI15', 'Show the math'],
     }
   }
 
