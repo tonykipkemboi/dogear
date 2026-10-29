@@ -84,7 +84,7 @@ For self-hosting, set `NEBIUS_API_KEY` and `TAVILY_API_KEY` in the environment.
 
 ```text
 dogear/
-├── AGENT.md             Agent setup, verification, and handoff guide
+├── AGENTS.md            Agent setup, verification, and handoff guide
 ├── src/                 React app, reader, highlights, transcript
 ├── server/              Local API, guides, Tavily, Nebius, compiler
 ├── scripts/             macOS Keychain helper
