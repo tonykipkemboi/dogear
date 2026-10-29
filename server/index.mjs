@@ -324,7 +324,7 @@ async function getModelCatalog() {
 
 const GUIDE_LEVELS = new Set(['ELI5', 'ELI15', 'Undergrad', 'Expert'])
 const GUIDE_PURPOSES = new Set(['understand', 'interview', 'build', 'overview'])
-const GUIDE_VERSION = 5
+const GUIDE_VERSION = 6
 
 const LEVEL_GUIDANCE = {
   ELI5: 'Explain like the reader is five. Use concrete, everyday analogies and short sentences.',
@@ -525,6 +525,40 @@ function normalizeGuideJson(parsed, prepared, level, purpose) {
       .map((block) => {
         if (typeof block === 'string') return { type: 'p', text: block.trim() }
         if (!block || typeof block !== 'object') return null
+        if (block.type === 'diagram') {
+          const kinds = ['flow', 'stack', 'compare', 'annotated']
+          const kind = kinds.includes(block.kind) ? block.kind : 'flow'
+          const items = Array.isArray(block.items)
+            ? block.items
+                .map((item) => {
+                  if (typeof item === 'string') return item.trim() ? { label: item.trim() } : null
+                  if (!item || typeof item !== 'object') return null
+                  const label = typeof item.label === 'string' ? item.label.trim() : ''
+                  if (!label) return null
+                  return {
+                    label,
+                    ...(typeof item.detail === 'string' && item.detail.trim()
+                      ? { detail: item.detail.trim() }
+                      : {}),
+                  }
+                })
+                .filter(Boolean)
+                .slice(0, 6)
+            : []
+          if (items.length < 2) return null
+          return {
+            type: 'diagram',
+            kind,
+            title: typeof block.title === 'string' && block.title.trim() ? block.title.trim() : 'How it fits together',
+            ...(typeof block.caption === 'string' && block.caption.trim()
+              ? { caption: block.caption.trim() }
+              : {}),
+            ...(typeof block.center === 'string' && block.center.trim()
+              ? { center: block.center.trim() }
+              : {}),
+            items,
+          }
+        }
         if (block.type === 'recall') {
           const question = typeof block.question === 'string' ? block.question.trim() : ''
           const answer = typeof block.answer === 'string' ? block.answer.trim() : ''
@@ -548,11 +582,13 @@ function normalizeGuideJson(parsed, prepared, level, purpose) {
         answer: keyPoints[0] || (typeof raw?.deck === 'string' ? raw.deck : 'Try explaining the mechanism in your own words.'),
       })
     }
-    const words = blocks.reduce(
-      (total, block) =>
-        total + (block.type === 'recall' ? `${block.question} ${block.answer}` : block.text).split(/\s+/).length,
-      0,
-    )
+    const words = blocks.reduce((total, block) => {
+      if (block.type === 'recall') return total + `${block.question} ${block.answer}`.split(/\s+/).length
+      if (block.type === 'diagram') {
+        return total + [block.title, block.caption, block.center, ...block.items.map((item) => `${item.label} ${item.detail || ''}`)].join(' ').split(/\s+/).length
+      }
+      return total + block.text.split(/\s+/).length
+    }, 0)
     return {
       title: title || `Chapter ${index + 1}`,
       short: typeof raw?.short === 'string' && raw.short.trim() ? raw.short.trim().slice(0, 40) : `Chapter ${index + 1}`,
@@ -740,7 +776,8 @@ async function generateChapterBody({ stored, model, level, purpose, meta, outlin
     {"type": "p", "text": "A causal explanation, not a recap."},
     {"type": "p", "text": "A second explanation or concrete example."},
     {"type": "callout", "label": "Mental model | Common mistake | Try it | Interview angle", "text": "One sentence to keep."},
-    {"type": "recall", "question": "A question that tests understanding.", "answer": "A short model answer."}
+    {"type": "recall", "question": "A question that tests understanding.", "answer": "A short model answer."},
+    {"type": "diagram", "kind": "flow | stack | compare | annotated", "title": "Specific diagram title", "center": "Only for annotated diagrams", "caption": "What the diagram shows", "items": [{"label": "Component or stage", "detail": "One short note"}]}
   ]
 }`
   const system = [
@@ -762,6 +799,7 @@ async function generateChapterBody({ stored, model, level, purpose, meta, outlin
     `Level: ${level}. ${LEVEL_GUIDANCE[level] || LEVEL_GUIDANCE.ELI15}`,
     `Purpose: ${purpose}. ${PURPOSE_GUIDANCE[purpose] || PURPOSE_GUIDANCE.understand}`,
     'Write 3 to 5 blocks. Include at least one p, one callout, and one recall question.',
+    'Add one diagram only when it makes a process, architecture, or comparison clearer. Use kind flow, stack, compare, or annotated, with 3 to 6 items. Ground every label in the transcript; omit the diagram if it would be decorative or uncertain.',
     'The recall answer should explain the idea in one or two sentences.',
     `JSON schema: ${schema}`,
     `Transcript segment [${formatClock(outline.start)} to ${formatClock(outline.end)}]:`,

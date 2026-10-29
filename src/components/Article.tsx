@@ -185,6 +185,10 @@ function BlockView({
     return <RecallCard block={block} />
   }
 
+  if (block.type === 'diagram') {
+    return <ConceptDiagram block={block} />
+  }
+
   return (
     <aside className="remember-card">
       <span className="remember-card__bar" aria-hidden="true" />
@@ -193,6 +197,78 @@ function BlockView({
         <p>{block.text}</p>
       </div>
     </aside>
+  )
+}
+
+function ConceptDiagram({ block }: { block: Extract<Block, { type: 'diagram' }> }) {
+  return (
+    <figure className={`concept-diagram concept-diagram--${block.kind}`}>
+      <div className="concept-diagram__head">
+        <span className="concept-diagram__label">
+          <span className="square-dot" aria-hidden="true" /> Diagram
+        </span>
+        <span className="mono-label">{block.kind}</span>
+      </div>
+      <h3>{block.title}</h3>
+      {block.kind === 'flow' ? (
+        <div className="concept-diagram__flow">
+          {block.items.map((item, index) => (
+            <div className="concept-diagram__step" key={`${item.label}-${index}`}>
+              <span className="concept-diagram__index">{String(index + 1).padStart(2, '0')}</span>
+              <strong>{item.label}</strong>
+              {item.detail ? <span>{item.detail}</span> : null}
+              {index < block.items.length - 1 ? (
+                <span className="concept-diagram__arrow" aria-hidden="true">
+                  →
+                </span>
+              ) : null}
+            </div>
+          ))}
+        </div>
+      ) : null}
+      {block.kind === 'stack' ? (
+        <div className="concept-diagram__stack">
+          {block.items.map((item, index) => (
+            <div className="concept-diagram__layer" key={`${item.label}-${index}`}>
+              <span className="concept-diagram__index">{String(index + 1).padStart(2, '0')}</span>
+              <strong>{item.label}</strong>
+              {item.detail ? <span>{item.detail}</span> : null}
+            </div>
+          ))}
+        </div>
+      ) : null}
+      {block.kind === 'compare' ? (
+        <div className="concept-diagram__compare">
+          {block.items.map((item, index) => (
+            <div className="concept-diagram__compare-card" key={`${item.label}-${index}`}>
+              <span className="concept-diagram__index">{String(index + 1).padStart(2, '0')}</span>
+              <strong>{item.label}</strong>
+              {item.detail ? <span>{item.detail}</span> : null}
+            </div>
+          ))}
+        </div>
+      ) : null}
+      {block.kind === 'annotated' ? (
+        <div className="concept-diagram__annotated">
+          <div className="concept-diagram__center">
+            <span className="mono-label">At the center</span>
+            <strong>{block.center || block.title}</strong>
+          </div>
+          <div className="concept-diagram__notes">
+            {block.items.map((item, index) => (
+              <div className="concept-diagram__note" key={`${item.label}-${index}`}>
+                <span className="concept-diagram__index">{String(index + 1).padStart(2, '0')}</span>
+                <div>
+                  <strong>{item.label}</strong>
+                  {item.detail ? <span>{item.detail}</span> : null}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      ) : null}
+      {block.caption ? <figcaption>{block.caption}</figcaption> : null}
+    </figure>
   )
 }
 
