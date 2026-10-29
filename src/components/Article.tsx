@@ -200,7 +200,53 @@ function BlockView({
   )
 }
 
-function ConceptDiagram({ block }: { block: Extract<Block, { type: 'diagram' }> }) {
+type DiagramBlock = Extract<Block, { type: 'diagram' }>
+
+function FlowDiagram({ block, forceVertical = false }: { block: DiagramBlock; forceVertical?: boolean }) {
+  const vertical = forceVertical || block.items.length > 4
+  return (
+    <ol className={`concept-diagram__flow${vertical ? ' concept-diagram__flow--vertical' : ''}`}>
+      {block.items.map((item, index) => (
+        <li className="concept-diagram__step" key={`${item.label}-${index}`}>
+          <span className="concept-diagram__node" aria-hidden="true">
+            <span className="concept-diagram__index">{String(index + 1).padStart(2, '0')}</span>
+          </span>
+          <div className="concept-diagram__copy">
+            <strong>{item.label}</strong>
+            {item.detail ? <span>{item.detail}</span> : null}
+          </div>
+        </li>
+      ))}
+    </ol>
+  )
+}
+
+function LoopDiagram({ block }: { block: DiagramBlock }) {
+  if (block.items.length !== 4) return <FlowDiagram block={block} forceVertical />
+  return (
+    <div className="concept-diagram__loop">
+      <div className="concept-diagram__loop-ring" aria-hidden="true" />
+      <div className="concept-diagram__loop-center">
+        <span className="concept-diagram__loop-mark" aria-hidden="true">
+          ↻
+        </span>
+        <strong>{block.center || 'One lap at a time'}</strong>
+      </div>
+      {block.items.map((item, index) => (
+        <div
+          className={`concept-diagram__loop-node concept-diagram__loop-node--${index + 1}`}
+          key={`${item.label}-${index}`}
+        >
+          <span className="concept-diagram__index">{String(index + 1).padStart(2, '0')}</span>
+          <strong>{item.label}</strong>
+          {item.detail ? <span>{item.detail}</span> : null}
+        </div>
+      ))}
+    </div>
+  )
+}
+
+function ConceptDiagram({ block }: { block: DiagramBlock }) {
   return (
     <figure className={`concept-diagram concept-diagram--${block.kind}`}>
       <div className="concept-diagram__head">
@@ -210,22 +256,8 @@ function ConceptDiagram({ block }: { block: Extract<Block, { type: 'diagram' }> 
         <span className="mono-label">{block.kind}</span>
       </div>
       <h3>{block.title}</h3>
-      {block.kind === 'flow' ? (
-        <div className="concept-diagram__flow">
-          {block.items.map((item, index) => (
-            <div className="concept-diagram__step" key={`${item.label}-${index}`}>
-              <span className="concept-diagram__index">{String(index + 1).padStart(2, '0')}</span>
-              <strong>{item.label}</strong>
-              {item.detail ? <span>{item.detail}</span> : null}
-              {index < block.items.length - 1 ? (
-                <span className="concept-diagram__arrow" aria-hidden="true">
-                  →
-                </span>
-              ) : null}
-            </div>
-          ))}
-        </div>
-      ) : null}
+      {block.kind === 'flow' ? <FlowDiagram block={block} /> : null}
+      {block.kind === 'loop' ? <LoopDiagram block={block} /> : null}
       {block.kind === 'stack' ? (
         <div className="concept-diagram__stack">
           {block.items.map((item, index) => (

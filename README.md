@@ -9,13 +9,31 @@
 
 <br>
 
+<p align="center">
+  <a href="https://tokenfactory.nebius.com" aria-label="Nebius Token Factory">
+    <picture>
+      <source media="(prefers-color-scheme: dark)" srcset="./public/readme/nebius-token-factory-dark.svg">
+      <img src="./public/nebius-token-factory.svg" alt="Nebius Token Factory" height="22">
+    </picture>
+  </a>
+  &nbsp;&nbsp;&nbsp;
+  <a href="https://www.tavily.com" aria-label="Tavily">
+    <picture>
+      <source media="(prefers-color-scheme: dark)" srcset="./public/readme/tavily-full-dark.svg">
+      <img src="./public/readme/tavily-full.svg" alt="Tavily" height="22">
+    </picture>
+  </a>
+</p>
+
+<br>
+
 ![React](https://img.shields.io/badge/React-19-161616?style=flat-square&logo=react&logoColor=61DAFB)
 ![TypeScript](https://img.shields.io/badge/TypeScript-5-161616?style=flat-square&logo=typescript&logoColor=3178C6)
 ![Vite](https://img.shields.io/badge/Vite-7-161616?style=flat-square&logo=vite&logoColor=646CFF)
 ![Nebius Token Factory](https://img.shields.io/badge/Nebius_Token_Factory-models-E9FF4F?style=flat-square&labelColor=161616)
 ![Tavily](https://img.shields.io/badge/Tavily-search-FAFAF7?style=flat-square&labelColor=161616)
 ![Playwright](https://img.shields.io/badge/Playwright-18_flows-161616?style=flat-square&logo=playwright&logoColor=2EAD33)
-![Vitest](https://img.shields.io/badge/Vitest-23_tests-161616?style=flat-square&logo=vitest&logoColor=6E9F18)
+![Vitest](https://img.shields.io/badge/Vitest-24_tests-161616?style=flat-square&logo=vitest&logoColor=6E9F18)
 
 </div>
 
@@ -66,6 +84,7 @@ For self-hosting, set `NEBIUS_API_KEY` and `TAVILY_API_KEY` in the environment.
 
 ```text
 dogear/
+├── AGENT.md             Agent setup, verification, and handoff guide
 ├── src/                 React app, reader, highlights, transcript
 ├── server/              Local API, guides, Tavily, Nebius, compiler
 ├── scripts/             macOS Keychain helper
@@ -87,7 +106,7 @@ dogear/
 
 ## Verification
 
-- 23 unit tests
+- 24 unit tests
 - 18 Playwright flows
 - Production build and deep links verified
 - Live Tavily search verified

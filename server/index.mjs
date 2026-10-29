@@ -324,7 +324,7 @@ async function getModelCatalog() {
 
 const GUIDE_LEVELS = new Set(['ELI5', 'ELI15', 'Undergrad', 'Expert'])
 const GUIDE_PURPOSES = new Set(['understand', 'interview', 'build', 'overview'])
-const GUIDE_VERSION = 6
+const GUIDE_VERSION = 8
 
 const LEVEL_GUIDANCE = {
   ELI5: 'Explain like the reader is five. Use concrete, everyday analogies and short sentences.',
@@ -410,7 +410,7 @@ function normalizeGuideJson(parsed, prepared, level, purpose) {
         if (typeof block === 'string') return { type: 'p', text: block.trim() }
         if (!block || typeof block !== 'object') return null
         if (block.type === 'diagram') {
-          const kinds = ['flow', 'stack', 'compare', 'annotated']
+          const kinds = ['flow', 'loop', 'stack', 'compare', 'annotated']
           const kind = kinds.includes(block.kind) ? block.kind : 'flow'
           const items = Array.isArray(block.items)
             ? block.items
@@ -500,7 +500,7 @@ function normalizeGuideJson(parsed, prepared, level, purpose) {
       start,
       end: Math.min(duration, Math.max(start + 5, end)),
       readMinutes: Math.max(1, Math.round(chapter.words / 220)),
-      diagramCount: 0,
+      diagramCount: chapter.blocks.filter((block) => block.type === 'diagram').length,
       keyPoints: chapter.keyPoints,
       blocks: chapter.blocks,
     }
@@ -521,7 +521,7 @@ function normalizeGuideJson(parsed, prepared, level, purpose) {
     duration,
     chapterCount: chapters.length,
     readMinutes,
-    diagramCount: 0,
+    diagramCount: chapters.reduce((total, chapter) => total + chapter.diagramCount, 0),
     webSourceCount: 1,
     progress: 0.08,
     minutesLeft: Math.max(1, Math.round(readMinutes * 0.92)),
@@ -575,7 +575,10 @@ async function callGuideCompletion({ stored, model, messages, maxTokens = 2200, 
   }
   const data = await response.json()
   const content = data?.choices?.[0]?.message?.content
-  if (typeof content !== 'string' || !content.trim()) throw new Error('Nebius returned an empty guide.')
+  if (typeof content !== 'string' || !content.trim()) {
+    const reason = data?.choices?.[0]?.finish_reason || 'no content'
+    throw new Error(`Nebius returned an empty guide (${reason}).`)
+  }
   return content
 }
 
@@ -624,9 +627,10 @@ async function generateOutline({ stored, model, level, purpose, meta, cues, extr
 
   let content = ''
   try {
-    content = await callGuideCompletion({ stored, model, messages, maxTokens: 2200 })
+    content = await callGuideCompletion({ stored, model, messages, maxTokens: 7000 })
     return parseModelJson(content)
   } catch (firstError) {
+    console.warn('Outline attempt failed:', firstError.message)
     const repaired = await callGuideCompletion({
       stored,
       model,
@@ -637,7 +641,7 @@ async function generateOutline({ stored, model, level, purpose, meta, cues, extr
           content: 'Return the same outline as one valid JSON object only. No prose, no code fences, no commentary.',
         },
       ],
-      maxTokens: 2200,
+      maxTokens: 7000,
       temperature: 0,
     })
     return parseModelJson(repaired)
@@ -661,7 +665,7 @@ async function generateChapterBody({ stored, model, level, purpose, meta, outlin
     {"type": "p", "text": "A second explanation or concrete example."},
     {"type": "callout", "label": "Mental model | Common mistake | Try it | Interview angle", "text": "One sentence to keep."},
     {"type": "recall", "question": "A question that tests understanding.", "answer": "A short model answer."},
-    {"type": "diagram", "kind": "flow | stack | compare | annotated", "title": "Specific diagram title", "center": "Only for annotated diagrams", "caption": "What the diagram shows", "items": [{"label": "Component or stage", "detail": "One short note"}]}
+    {"type": "diagram", "kind": "flow | loop | stack | compare | annotated", "title": "Specific diagram title", "center": "Only for annotated or loop diagrams", "caption": "What the diagram shows", "items": [{"label": "Component or stage", "detail": "One short note"}]}
   ]
 }`
   const system = [
@@ -683,7 +687,7 @@ async function generateChapterBody({ stored, model, level, purpose, meta, outlin
     `Level: ${level}. ${LEVEL_GUIDANCE[level] || LEVEL_GUIDANCE.ELI15}`,
     `Purpose: ${purpose}. ${PURPOSE_GUIDANCE[purpose] || PURPOSE_GUIDANCE.understand}`,
     'Write 3 to 5 blocks. Include at least one p, one callout, and one recall question.',
-    'Add one diagram only when it makes a process, architecture, or comparison clearer. Use kind flow, stack, compare, or annotated, with 3 to 6 items. Ground every label in the transcript; omit the diagram if it would be decorative or uncertain.',
+    'Add one diagram only when it makes a process, architecture, or comparison clearer. Use flow for a one-way process, loop for a repeating cycle with exactly four items in cycle order, stack for layers, compare for two alternatives, and annotated for one central object. Keep labels to 1 to 4 words and details to 14 words or fewer. Ground every label in the transcript; omit the diagram if it would be decorative or uncertain.',
     'Place the diagram after the explanation it supports and before the recall question.',
     'The recall answer should explain the idea in one or two sentences.',
     `JSON schema: ${schema}`,
@@ -709,7 +713,7 @@ async function generateChapterBody({ stored, model, level, purpose, meta, outlin
   }
 
   try {
-    const content = await callGuideCompletion({ stored, model, messages, maxTokens: 1800 })
+    const content = await callGuideCompletion({ stored, model, messages, maxTokens: 5000 })
     return readBody(parseModelJson(content))
   } catch {
     try {
@@ -723,11 +727,12 @@ async function generateChapterBody({ stored, model, level, purpose, meta, outlin
             content: 'Return this chapter as one valid JSON object only. No prose, no code fences.',
           },
         ],
-        maxTokens: 1800,
+        maxTokens: 5000,
         temperature: 0,
       })
       return readBody(parseModelJson(content))
-    } catch {
+    } catch (error) {
+      console.warn('Chapter fallback:', error.message)
       const fallback = outline.keyPoints?.[0] || outline.deck || outline.focus || outline.title
       const title = outline.title || `Chapter ${outline.number || index + 1}`
       return {
@@ -1004,20 +1009,38 @@ const ANSWER_ACTION_RULES = {
   example: 'Give one concrete example that makes the highlighted passage clear. Use the chapter’s actual components and label it as an example.',
 }
 
-async function askNebius({ question, context, quote, level, model, action }) {
+async function askNebius({ question, context, quote, level, model, action, webSearch }) {
   const stored = await getStoredKey('nebius')
   if (!stored) throw new Error('Add a Nebius Token Factory key to ask live questions.')
   const chosenModel = typeof model === 'string' && model ? model : DEFAULT_MODEL
   const actionRule = action && ANSWER_ACTION_RULES[action]
+  let webNotes = ''
+  if (action && webSearch && quote && quote.trim().split(/\s+/).length <= 6) {
+    try {
+      const result = await searchTavily(`${quote} explained`)
+      if (!result.demo) {
+        webNotes = result.sources
+          .slice(0, 3)
+          .map((source) => `- ${source.title} (${source.domain}): ${source.extract[0].slice(0, 500)}`)
+          .join('\n')
+      }
+    } catch {
+      // General model knowledge is still available.
+    }
+  }
   const system = [
     'You are Dogear, a reading companion for a chaptered video guide.',
     actionRule
       ? `The reader highlighted a passage. ${actionRule}`
       : 'Answer the reader’s question directly from the chapter context.',
     ANSWER_LEVEL_RULES[level] || ANSWER_LEVEL_RULES.ELI15,
-    'The highlighted passage may be a single word or short phrase. Explain that phrase in this chapter, not the whole chapter.',
+    'The highlighted passage may be a single word or short phrase. Explain that phrase directly, not the whole chapter.',
+    'For a highlighted term, use the chapter context first, then your general knowledge, then any web notes. Do not lead with a statement that the chapter does not define it. If the term is new to the chapter, explain what it is.',
+    'Do not attribute general knowledge or web notes to the video.',
     'Do not start by restating the highlight or the chapter title. Start with the answer.',
-    'Use only the supplied chapter context. If the context does not answer, say what is missing instead of inventing.',
+    actionRule
+      ? 'If the chapter is insufficient, fill the gap from general knowledge or web notes instead of refusing.'
+      : 'Use only the supplied chapter context. If the context does not answer, say what is missing instead of inventing.',
     'At most two short paragraphs. No markdown, no bullet lists, no em dashes.',
   ].join(' ')
   const user = [
@@ -1025,6 +1048,7 @@ async function askNebius({ question, context, quote, level, model, action }) {
     `Selected highlight: ${quote || 'none'}.`,
     'Chapter context:',
     String(context || '').slice(0, 9000),
+    ...(webNotes ? ['Web reference notes (outside the chapter; verify before quoting):', webNotes] : []),
     `Question: ${String(question || '').slice(0, 800)}`,
   ].join('\n\n')
 
@@ -1162,6 +1186,7 @@ async function handleApi(request, response, url) {
         level: body.level,
         model: body.model,
         action: ['explain', 'simplify', 'example'].includes(body.action) ? body.action : null,
+        webSearch: body.webSearch === true,
       })
       sendJson(response, 200, { answer, mode: 'live' })
     } catch (error) {
@@ -1173,10 +1198,6 @@ async function handleApi(request, response, url) {
   if (url.pathname === '/api/compile' && request.method === 'POST') {
     const body = await readBody(request)
     const value = typeof body.url === 'string' ? body.url : ''
-    if (value.includes('hBzUokVYQkI')) {
-      sendJson(response, 200, { guideId: 'ai-infrastructure' })
-      return
-    }
     const level = GUIDE_LEVELS.has(body.level) ? body.level : 'ELI15'
     const purpose = GUIDE_PURPOSES.has(body.purpose) ? body.purpose : 'understand'
     try {

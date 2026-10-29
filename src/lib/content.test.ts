@@ -22,12 +22,15 @@ describe('getHighlightContent', () => {
     const chapter = getChapter(SEEDED_GUIDE, 'llm-d')
     const simplified = getHighlightContent('simplify', 'ELI15', 'LLM-D', SOURCES, chapter)
     expect(simplified.title).toBe('“LLM-D”')
-    expect(simplified.body).toContain('Prefill and decode can run on different pools')
+    expect(simplified.body).toContain('LLM-D')
     expect(simplified.body).not.toContain('scratch pad')
     expect(simplified.chips).not.toContain('Show the math')
 
     const source = getHighlightContent('source', 'ELI15', 'LLM-D', SOURCES, chapter)
     expect(source.source?.id).toBe('llm-d')
+
+    const post = getHighlightContent('explain', 'ELI15', 'POST request', SOURCES, chapter)
+    expect(post.body).toContain('HTTP request')
   })
 
   it('offers all four level labels in the chips', () => {

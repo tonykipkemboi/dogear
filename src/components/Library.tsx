@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { SEEDED_GUIDE } from '../data/guide'
+import { EXAMPLE_GUIDE, SEEDED_GUIDE } from '../data/guide'
 import { getLibrary, type LibraryEntry } from '../lib/api'
 import { formatTime } from '../lib/format'
 import { Link } from '../lib/router'
@@ -31,7 +31,7 @@ export function Library() {
         if (!active) return
         setCompiled(
           entries
-            .filter((entry: LibraryEntry) => entry.id !== SEEDED_GUIDE.id)
+            .filter((entry: LibraryEntry) => entry.id !== SEEDED_GUIDE.id && entry.id !== EXAMPLE_GUIDE.id)
             .map((entry) => ({
               id: entry.id,
               title: entry.title,
@@ -55,16 +55,16 @@ export function Library() {
   }, [])
 
   const seeded: CardData = {
-    id: SEEDED_GUIDE.id,
-    title: SEEDED_GUIDE.title,
-    channel: SEEDED_GUIDE.channel,
-    thumbnail: SEEDED_GUIDE.thumbnail,
-    duration: SEEDED_GUIDE.duration,
-    chapterCount: SEEDED_GUIDE.chapterCount,
-    readMinutes: SEEDED_GUIDE.readMinutes,
-    progress: SEEDED_GUIDE.progress,
-    href: '/read/ai-infrastructure?chapter=kv-cache',
-    label: 'Recently read',
+    id: EXAMPLE_GUIDE.id,
+    title: EXAMPLE_GUIDE.title,
+    channel: EXAMPLE_GUIDE.channel,
+    thumbnail: EXAMPLE_GUIDE.thumbnail,
+    duration: EXAMPLE_GUIDE.duration,
+    chapterCount: EXAMPLE_GUIDE.chapterCount,
+    readMinutes: EXAMPLE_GUIDE.readMinutes,
+    progress: EXAMPLE_GUIDE.progress,
+    href: `/read/${EXAMPLE_GUIDE.id}`,
+    label: 'Compiled example',
   }
 
   return (
@@ -127,7 +127,6 @@ function GuideCard({ data }: { data: CardData }) {
         </div>
         <span className="library-card__progress-copy">
           {Math.round(data.progress * 100)}% read
-          {data.id === SEEDED_GUIDE.id ? ' · Chapter 06' : ''}
         </span>
       </div>
       <Link to={data.href} className="button button--ghost library-card__open">

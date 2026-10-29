@@ -1,3 +1,5 @@
+import exampleGuide from './example-modern-ai.json'
+
 export type Level = 'ELI5' | 'ELI15' | 'Undergrad' | 'Expert'
 export type HighlightAction = 'explain' | 'simplify' | 'example' | 'source'
 
@@ -27,7 +29,7 @@ export type Block =
   | { type: 'recall'; question: string; answer: string }
   | {
       type: 'diagram'
-      kind: 'flow' | 'stack' | 'compare' | 'annotated'
+      kind: 'flow' | 'loop' | 'stack' | 'compare' | 'annotated'
       title: string
       caption?: string
       center?: string
@@ -52,6 +54,8 @@ function frame(
     timestamp: { label: 'video', seconds },
   }
 }
+
+export const EXAMPLE_GUIDE = exampleGuide as Guide
 
 export interface Chapter {
   id: string

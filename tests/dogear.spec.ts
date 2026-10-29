@@ -38,7 +38,7 @@ test.describe('desktop', () => {
     await expect(page.locator('.compile-progress')).toHaveCount(0)
   })
 
-  test('home validates a URL and opens the seeded guide', async ({ page }) => {
+  test('home validates a URL and opens the compiled example', async ({ page }) => {
     await page.goto('/')
     await expect(page.getByRole('heading', { name: /Paste a video\. Learn from it\./i })).toBeVisible()
     const input = page.getByLabel('YouTube video link')
@@ -46,10 +46,10 @@ test.describe('desktop', () => {
     await page.getByRole('button', { name: 'Compile' }).click()
     await expect(page.getByRole('alert')).toContainText('Paste a YouTube link')
 
-    await input.fill('https://youtu.be/hBzUokVYQkI')
+    await input.fill('https://youtu.be/EsQ_bmXKA4A')
     await page.getByRole('button', { name: 'Compile' }).click()
-    await expect(page).toHaveURL(/\/read\/ai-infrastructure\?chapter=kv-cache/)
-    await expect(page.getByRole('heading', { name: 'The cache that makes chat feel instant.' })).toBeVisible()
+    await expect(page).toHaveURL(/\/read\/yt-esq_bmxka4a/)
+    await expect(page.getByRole('heading', { name: 'Software 2.0: Turning Examples Into a Learned Program' })).toBeVisible()
   })
 
   test('highlight, source popup, escape, and read view', async ({ page }) => {
@@ -213,7 +213,7 @@ test.describe('mobile', () => {
     expect(homeOverflow).toBe(false)
 
     await page.locator('.or-try__button').click()
-    await expect(page).toHaveURL(/\/read\/ai-infrastructure/)
+    await expect(page).toHaveURL(/\/read\/yt-esq_bmxka4a/)
     await expect(page.locator('.reader-mobile-bar')).toBeVisible()
     const readerOverflow = await page.evaluate(
       () => document.documentElement.scrollWidth > window.innerWidth + 1,

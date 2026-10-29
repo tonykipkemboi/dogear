@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { SEEDED_GUIDE, getChapter, getChapterByNumber, SOURCES } from './guide'
+import { EXAMPLE_GUIDE, SEEDED_GUIDE, getChapter, getChapterByNumber, SOURCES } from './guide'
 
 describe('seeded guide', () => {
   it('has ten chapters in timestamp order starting at chapter one', () => {
@@ -39,6 +39,26 @@ describe('seeded guide', () => {
       expect(source.url.startsWith('https://')).toBe(true)
       expect(source.keyPoints.length).toBeGreaterThan(0)
       expect(source.verified).toBe(true)
+    }
+  })
+})
+
+describe('compiled example guide', () => {
+  it('ships a complete eight-chapter guide with diagrams and recall checks', () => {
+    expect(EXAMPLE_GUIDE.chapters).toHaveLength(8)
+    expect(EXAMPLE_GUIDE.diagramCount).toBe(8)
+    expect(EXAMPLE_GUIDE.transcript?.length).toBeGreaterThan(1_000)
+    expect(EXAMPLE_GUIDE.thumbnail).toBe('/example-modern-ai.jpg')
+    expect(
+      EXAMPLE_GUIDE.chapters.some((chapter) =>
+        chapter.blocks.some((block) => block.type === 'diagram' && block.kind === 'loop'),
+      ),
+    ).toBe(true)
+    for (const chapter of EXAMPLE_GUIDE.chapters) {
+      expect(chapter.title).not.toMatch(/^Chapter \d+$/)
+      expect(chapter.blocks.some((block) => block.type === 'p')).toBe(true)
+      expect(chapter.blocks.some((block) => block.type === 'diagram')).toBe(true)
+      expect(chapter.blocks.some((block) => block.type === 'recall')).toBe(true)
     }
   })
 })

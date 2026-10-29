@@ -6,9 +6,9 @@ import { ArrowRightIcon } from './Icons'
 import { YouTubeMark } from './Marks'
 import { Link, navigate } from '../lib/router'
 import { formatTime, parseYouTubeUrl } from '../lib/format'
-import { SEEDED_GUIDE } from '../data/guide'
+import { EXAMPLE_GUIDE } from '../data/guide'
 
-const DEMO_ID = SEEDED_GUIDE.youtubeId
+const DEMO_ID = EXAMPLE_GUIDE.youtubeId
 
 export function Home() {
   const [value, setValue] = useState('')
@@ -17,7 +17,7 @@ export function Home() {
   const fileInput = useRef<HTMLInputElement>(null)
 
   const openDemo = () => {
-    navigate('/read/ai-infrastructure?chapter=kv-cache')
+    navigate(`/read/${EXAMPLE_GUIDE.id}`)
   }
 
   const handleSubmit = (event: FormEvent) => {
@@ -116,11 +116,11 @@ export function Home() {
               <span>or try</span>
               <button type="button" className="or-try__button" onClick={openDemo}>
                 <span className="or-try__thumb">
-                  <img src={SEEDED_GUIDE.thumbnail} alt="" />
+                  <img src={EXAMPLE_GUIDE.thumbnail} alt="" />
                   <YouTubeMark size={18} />
                 </span>
-                <span className="or-try__title">{SEEDED_GUIDE.title}</span>
-                <span className="or-try__time">{formatTime(SEEDED_GUIDE.duration)}</span>
+                <span className="or-try__title">{EXAMPLE_GUIDE.title}</span>
+                <span className="or-try__time">{formatTime(EXAMPLE_GUIDE.duration)}</span>
                 <ArrowRightIcon size={14} />
               </button>
             </div>

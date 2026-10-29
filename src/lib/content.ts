@@ -16,6 +16,111 @@ function quoteTitle(quote: string): string {
   return `“${short}”`
 }
 
+interface Term {
+  term: string
+  definition: string
+  simple: string
+  example: string
+  why: string
+}
+
+const TERMS: Term[] = [
+  {
+    term: 'LLM-D',
+    definition:
+      'LLM-D is an open-source distributed inference system for serving large language models across multiple workers. It separates prefill and decode into different pools and routes requests with cache locality in mind.',
+    simple:
+      'LLM-D is a way to run a large language model across several machines so more people can use it. It keeps the cached prompt close to the worker that needs it.',
+    example:
+      'One pool reads a long prompt and builds the KV cache. Another pool writes the answer. The router sends the request to the worker that already has the matching cache.',
+    why: 'The system around the model becomes a routing and memory problem, not just a model problem.',
+  },
+  {
+    term: 'POST request',
+    definition:
+      'A POST request is an HTTP request that sends data to a server. In this chapter, the dashboard sends a POST request to the vLLM server to pull live inference metrics.',
+    simple:
+      'A POST request is a message an app sends to a server to ask it to do something or return fresh data.',
+    example:
+      'The dashboard sends a POST request to the vLLM server, receives the current token throughput, and places that number beside the benchmark comparison.',
+    why: 'It turns the dashboard from a static report into a live operational signal.',
+  },
+  {
+    term: 'RAG',
+    definition:
+      'Retrieval augmented generation looks up relevant passages from a knowledge source, then gives those passages to a language model alongside the question.',
+    simple:
+      'RAG is a way to give a model an open-book lookup before it answers, instead of relying only on what it memorized during training.',
+    example:
+      'A question is turned into a search query, relevant PDF chunks are retrieved, and the model answers from those chunks rather than from memory alone.',
+    why: 'It lets the model answer over fresh or private material it was not trained on.',
+  },
+  {
+    term: 'KV cache',
+    definition:
+      'The KV cache stores the attention keys and values for tokens the model has already processed, so decode can reuse them instead of rebuilding the prompt for each new token.',
+    simple:
+      'The KV cache is the model’s notes from reading a prompt once. It reuses those notes for each new word.',
+    example:
+      'Prefill reads a long prompt and saves its keys and values. Decode reads that cache instead of re-reading the whole prompt for the next token.',
+    why: 'It moves the serving bottleneck from repeated computation to memory capacity.',
+  },
+  {
+    term: 'prefill',
+    definition:
+      'Prefill processes the prompt in parallel and builds the KV cache. It is compute-heavy and happens once per prompt.',
+    simple: 'Prefill is the model reading the whole prompt before it starts writing.',
+    example: 'A long document is read in one parallel pass, then its cached state is ready for the first generated token.',
+    why: 'It explains the pause before a chat response starts streaming.',
+  },
+  {
+    term: 'decode',
+    definition:
+      'Decode generates one token per forward pass and reuses the KV cache. It is memory-bandwidth-bound rather than compute-bound.',
+    simple: 'Decode writes one word at a time, using the notes the model already saved.',
+    example: 'The model writes token after token, reading the cached keys and values for the tokens already produced.',
+    why: 'It explains why the steady stream of a response is limited by memory traffic.',
+  },
+  {
+    term: 'vLLM',
+    definition:
+      'vLLM is a serving engine for large language models. It schedules requests and uses paged KV cache management to share and reclaim GPU memory.',
+    simple: 'vLLM is the traffic controller between many requests and the GPU.',
+    example: 'It packs multiple conversations into a batch, pages their KV caches, and reclaims memory when a request finishes.',
+    why: 'It is where batching, latency, and memory policy meet.',
+  },
+  {
+    term: 'batching',
+    definition:
+      'Batching puts multiple requests through the GPU together so it has more work to do between token steps. It can improve throughput while increasing the wait for any one request.',
+    simple: 'Batching lets the GPU serve several people at once instead of waiting on one conversation.',
+    example: 'Four users ask questions at the same time; their decode steps are grouped into one larger GPU pass.',
+    why: 'It is a throughput lever, not a latency cure.',
+  },
+  {
+    term: 'sharding',
+    definition:
+      'Sharding splits a model that does not fit on one GPU across multiple devices. Tensor parallelism splits the math in a layer; pipeline parallelism splits layers into stages.',
+    simple: 'Sharding breaks a giant model into pieces so several GPUs can hold it.',
+    example: 'One layer’s matrix is split across four GPUs, and each device computes its slice before the results are combined.',
+    why: 'It makes a large model fit, but adds communication cost.',
+  },
+  {
+    term: 'prefix cache',
+    definition:
+      'A prefix cache reuses the KV cache for an exact prompt prefix. A cache hit skips prefill for that shared prefix; a changed opening text causes a miss.',
+    simple: 'A prefix cache remembers the start of a prompt so the model does not read it again.',
+    example: 'Two requests share the same system prompt. The second one reuses the cached prefix and prefills only its new question.',
+    why: 'It makes shared context cheaper, but routing has to preserve locality.',
+  },
+]
+
+function findTerm(quote: string): Term | null {
+  const normalized = quote.toLowerCase().replace(/[“”"]/g, '').trim()
+  if (!normalized || normalized.split(/\s+/).length > 4) return null
+  return TERMS.find((item) => normalized === item.term.toLowerCase()) ?? null
+}
+
 const EXPLAIN: Record<Level, Omit<HighlightContent, 'chips'>> = {
   ELI5: {
     title: 'It keeps its notes.',
@@ -50,6 +155,16 @@ export function getHighlightContent(
   sources?: Source[],
   chapter?: Chapter,
 ): HighlightContent {
+  const term = action !== 'source' ? findTerm(_quote) : null
+  if (term) {
+    return {
+      title: quoteTitle(_quote),
+      body: action === 'simplify' ? term.simple : action === 'example' ? term.example : term.definition,
+      why: chapter?.keyPoints[0] || term.why,
+      chips: ['ELI5', 'ELI15'],
+    }
+  }
+
   if (action !== 'source' && chapter && chapter.id !== 'kv-cache') {
     const points = chapter.keyPoints
     const focus = chapter.blocks.find(

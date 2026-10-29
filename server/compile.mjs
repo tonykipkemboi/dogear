@@ -215,6 +215,16 @@ async function fetchMetadata(url) {
   }
 }
 
+function isOriginalEnglishTrack(track) {
+  if (typeof track?.url !== 'string') return false
+  try {
+    const url = new URL(track.url)
+    return url.searchParams.get('lang') === 'en' && !url.searchParams.get('tlang')
+  } catch {
+    return false
+  }
+}
+
 function findCaptionUrl(meta) {
   const groups = [
     meta.subtitles?.en,
@@ -222,17 +232,13 @@ function findCaptionUrl(meta) {
     meta.automatic_captions?.en,
     meta.automatic_captions?.['en-orig'],
   ]
-  for (const tracks of groups) {
-    if (!Array.isArray(tracks)) continue
-    const track = tracks.find(
-      (item) =>
-        item?.ext === 'vtt' &&
-        typeof item.url === 'string' &&
-        !item.url.includes('manifest.googlevideo.com'),
-    )
-    if (track?.url) return track.url
-  }
-  return null
+  const tracks = groups.filter(Array.isArray).flat().filter(
+    (item) =>
+      item?.ext === 'vtt' &&
+      typeof item.url === 'string' &&
+      !item.url.includes('manifest.googlevideo.com'),
+  )
+  return (tracks.find(isOriginalEnglishTrack) ?? tracks[0])?.url ?? null
 }
 
 async function fetchDirectCaptions(meta) {

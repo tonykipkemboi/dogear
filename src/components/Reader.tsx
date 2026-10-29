@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { Chapter, Guide, HighlightAction, Level, RecentHighlight, Source } from '../data/guide'
-import { DEFAULT_LEVEL, getChapter, getSource, SEEDED_GUIDE } from '../data/guide'
+import { DEFAULT_LEVEL, EXAMPLE_GUIDE, getChapter, getSource, SEEDED_GUIDE } from '../data/guide'
 import { ask as askQuestion, searchWeb } from '../lib/api'
 import { getHighlightContent, localAnswer, type HighlightContent } from '../lib/content'
 import { clamp } from '../lib/format'
@@ -52,8 +52,10 @@ export function Reader() {
   const search = new URLSearchParams(location.split('?')[1]?.split('#')[0] ?? '')
   const guideId = pathname.split('/')[2] || SEEDED_GUIDE.id
   const chapterId = search.get('chapter')
-  const [guide, setGuide] = useState<Guide>(SEEDED_GUIDE)
-  const [loading, setLoading] = useState(guideId !== SEEDED_GUIDE.id)
+  const isExampleGuide = guideId === EXAMPLE_GUIDE.id
+  const initialGuide = isExampleGuide ? EXAMPLE_GUIDE : SEEDED_GUIDE
+  const [guide, setGuide] = useState<Guide>(initialGuide)
+  const [loading, setLoading] = useState(guideId !== SEEDED_GUIDE.id && !isExampleGuide)
   const chapter = getChapter(
     guide,
     chapterId ?? (guide.id === SEEDED_GUIDE.id ? 'kv-cache' : guide.chapters[0]?.id),
@@ -71,7 +73,7 @@ export function Reader() {
   const [toolbarMuted, setToolbarMuted] = useState(false)
   const [selectionAnchor, setSelectionAnchor] = useState<ToolbarState | null>(null)
   const [recent, setRecent] = useState<RecentHighlight[]>(() =>
-    readRecentHighlights(SEEDED_GUIDE.recentHighlights, SEEDED_GUIDE.id),
+    readRecentHighlights(initialGuide.recentHighlights, initialGuide.id),
   )
   const [messages, setMessages] = useState<PanelMessage[]>([])
   const [asking, setAsking] = useState(false)
@@ -97,6 +99,11 @@ export function Reader() {
   useEffect(() => {
     if (guideId === SEEDED_GUIDE.id) {
       setGuide(SEEDED_GUIDE)
+      setLoading(false)
+      return
+    }
+    if (guideId === EXAMPLE_GUIDE.id) {
+      setGuide(EXAMPLE_GUIDE)
       setLoading(false)
       return
     }
@@ -462,6 +469,7 @@ export function Reader() {
       level,
       model: prefs.model,
       action: current.action,
+      webSearch: prefs.webSearch,
     })
       .then((result) => {
         if (cancelled) return
