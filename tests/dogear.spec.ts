@@ -57,7 +57,7 @@ test.describe('desktop', () => {
 
     await page.locator('.recent-highlight').first().click()
     await expect(page.locator('.highlight-toolbar')).toBeVisible()
-    await expect(page.locator('.highlight-content h3')).toHaveText("The model's scratch pad.")
+    await expect(page.locator('.highlight-content h3')).toHaveText("“the KV cache is the trick that breaks the loop”")
     await expect(page.locator('.quote-mark')).toHaveCount(1)
     await expect(page.locator('.recent-highlights--panel')).toBeVisible()
     await expect(page.locator('.recent-highlights--panel .recent-highlight')).toHaveCount(1)
@@ -115,7 +115,7 @@ test.describe('desktop', () => {
     })
     await expect(page.locator('.highlight-toolbar')).toBeVisible()
     await page.locator('.highlight-toolbar button').filter({ hasText: 'Simplify' }).click()
-    await expect(page.locator('.highlight-content h3')).toHaveText('LLM-D, simply.')
+    await expect(page.locator('.highlight-content h3')).toHaveText('“LLM-D”')
     await expect(page.locator('.highlight-content > p')).not.toContainText('scratch pad')
 
     await page.getByRole('tab', { name: 'Source' }).click()
@@ -237,7 +237,7 @@ test.describe('mobile', () => {
     await expect(page.locator('.highlights-sheet')).toBeVisible()
     await page.locator('.highlights-sheet .recent-highlight').first().click()
     await expect(page.locator('.highlights-sheet .highlight-content h3')).toHaveText(
-      "The model's scratch pad.",
+      "“the KV cache is the trick that breaks the loop”",
     )
 
     await page.locator('.highlights-sheet').getByRole('tab', { name: 'Source' }).click()
@@ -301,7 +301,7 @@ test.describe('tablet', () => {
     await expect(page.locator('.highlights-sheet')).toBeVisible()
     await page.locator('.highlights-sheet .recent-highlight').first().click()
     await expect(page.locator('.highlights-sheet .highlight-content h3')).toHaveText(
-      "The model's scratch pad.",
+      "“the KV cache is the trick that breaks the loop”",
     )
     const overflow = await page.evaluate(
       () => document.documentElement.scrollWidth > window.innerWidth + 1,

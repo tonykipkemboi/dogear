@@ -6,13 +6,13 @@ describe('getHighlightContent', () => {
   it('changes the explanation with the level', () => {
     const kid = getHighlightContent('explain', 'ELI5', 'quote')
     const expert = getHighlightContent('explain', 'Expert', 'quote')
-    expect(kid.title).toBe('It keeps its notes.')
-    expect(expert.title).toBe('Prefix reuse, bounded by memory.')
+    expect(kid.title).toBe('“quote”')
+    expect(expert.title).toBe('“quote”')
     expect(kid.body).not.toBe(expert.body)
   })
 
   it('returns an example and a source action', () => {
-    expect(getHighlightContent('example', 'ELI15', 'quote').title).toBe('A hundred tokens, one prompt.')
+    expect(getHighlightContent('example', 'ELI15', 'quote').title).toBe('“quote”')
     const source = getHighlightContent('source', 'ELI15', 'q')
     expect(source.source?.id).toBe('vllm-prefix')
     expect(source.source?.verified).toBe(true)
@@ -21,7 +21,7 @@ describe('getHighlightContent', () => {
   it('uses the selected chapter instead of the KV-cache static copy', () => {
     const chapter = getChapter(SEEDED_GUIDE, 'llm-d')
     const simplified = getHighlightContent('simplify', 'ELI15', 'LLM-D', SOURCES, chapter)
-    expect(simplified.title).toBe('LLM-D, simply.')
+    expect(simplified.title).toBe('“LLM-D”')
     expect(simplified.body).toContain('Prefill and decode can run on different pools')
     expect(simplified.body).not.toContain('scratch pad')
     expect(simplified.chips).not.toContain('Show the math')

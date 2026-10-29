@@ -10,6 +10,12 @@ export interface HighlightContent {
   math?: string
 }
 
+function quoteTitle(quote: string): string {
+  const clean = quote.replace(/\s+/g, ' ').trim()
+  const short = clean.length > 64 ? `${clean.slice(0, 64).trimEnd()}…` : clean
+  return `“${short}”`
+}
+
 const EXPLAIN: Record<Level, Omit<HighlightContent, 'chips'>> = {
   ELI5: {
     title: 'It keeps its notes.',
@@ -52,7 +58,7 @@ export function getHighlightContent(
     const focusText = focus && focus.type === 'p' ? focus.text : ''
     if (action === 'explain') {
       return {
-        title: `${chapter.short}, in context.`,
+        title: quoteTitle(_quote),
         body: `${chapter.deck}${focusText ? ` ${focusText}` : ` ${points.join(' ')}`}`,
         why: points[1] ?? points[0],
         chips: ['ELI5', 'ELI15'],
@@ -60,14 +66,14 @@ export function getHighlightContent(
     }
     if (action === 'simplify') {
       return {
-        title: `${chapter.short}, simply.`,
+        title: quoteTitle(_quote),
         body: `${chapter.deck} ${points[0]}`,
         why: points[1] ?? points[0],
         chips: ['ELI5', 'ELI15'],
       }
     }
     return {
-      title: `${chapter.short} in practice.`,
+      title: quoteTitle(_quote),
       body: `Here is the idea in one request. ${points[0]} ${points[1] ?? ''}`.trim(),
       why: points[2] ?? points[0],
       chips: ['ELI5', 'ELI15'],
@@ -77,13 +83,14 @@ export function getHighlightContent(
   if (action === 'explain') {
     return {
       ...EXPLAIN[level],
+      title: quoteTitle(_quote),
       chips: level === 'ELI15' ? ['ELI5', 'ELI22', 'Show the math'] : ['ELI5', 'ELI15', 'Show the math'],
     }
   }
 
   if (action === 'simplify') {
     return {
-      title: 'The short version.',
+      title: quoteTitle(_quote),
       body: 'The model reads your prompt once, writes down what it learned, and reuses those notes for every word it writes back.',
       why: 'The answer is the same. The second, third, and hundredth token are cheaper.',
       chips: ['ELI5', 'ELI15', 'Show the math'],
@@ -93,7 +100,7 @@ export function getHighlightContent(
 
   if (action === 'example') {
     return {
-      title: 'A hundred tokens, one prompt.',
+      title: quoteTitle(_quote),
       body: 'Ask for a 100-word summary. Without a cache, the GPU re-reads the prompt 100 times. With the cache, it reads once and reuses the notes.',
       why: 'This is the difference between paying for the prompt once and paying for it on every token.',
       chips: ['ELI5', 'ELI15', 'Show the math'],
@@ -113,7 +120,7 @@ export function getHighlightContent(
     sources?.[0] ??
     getSource('vllm-prefix')
   return {
-    title: source.title,
+    title: quoteTitle(_quote),
     body: source.extract[0],
     why: source.why,
     source,
