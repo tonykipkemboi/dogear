@@ -92,6 +92,7 @@ export async function ask(payload: {
   context: string
   level: string
   model?: string
+  action?: 'explain' | 'simplify' | 'example'
 }): Promise<AskResponse> {
   return request<AskResponse>(
     '/api/ask',

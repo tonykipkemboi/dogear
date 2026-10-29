@@ -455,19 +455,13 @@ export function Reader() {
     setLiveHighlight(null)
     setHighlightLoading(true)
     let cancelled = false
-    const prompt =
-      current.action === 'simplify'
-        ? `Explain the highlighted passage as simply as possible for a ${level} reader. Keep the chapter's meaning.`
-        : current.action === 'example'
-          ? `Give one concrete example that makes the highlighted passage clear. Stay inside the chapter context.`
-          : `Explain the highlighted passage in the context of this chapter. Start with the idea, then show how it works.`
-
     askQuestion({
-      question: `${prompt} Chapter: ${chapter.title}`,
+      question: `Answer for the highlighted passage. Chapter: ${chapter.title}`,
       quote: current.text,
       context: chapterContext,
       level,
       model: prefs.model,
+      action: current.action,
     })
       .then((result) => {
         if (cancelled) return

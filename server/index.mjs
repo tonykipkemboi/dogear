@@ -396,122 +396,6 @@ function parseModelJson(text) {
   }
 }
 
-async function generateGuideJson({ model, level, purpose, meta, cues, extraInstruction = '' }) {
-  const stored = await getStoredKey('nebius')
-  if (!stored) throw new Error('Add a Nebius Token Factory key in Keys to compile a learning guide.')
-
-  const schema = `{
-  "deck": "One-sentence promise for the guide",
-  "chapters": [
-    {
-      "title": "Specific teaching title",
-      "short": "2 to 4 words",
-      "deck": "One-sentence chapter summary",
-      "start": 0,
-      "end": 120,
-      "keyPoints": ["Point one", "Point two"],
-      "blocks": [
-        {"type": "p", "text": "A short explanatory paragraph."},
-        {"type": "callout", "label": "Mental model", "text": "One sentence to keep."},
-        {"type": "recall", "question": "A question that tests understanding.", "answer": "A short model answer."}
-      ]
-    }
-  ]
-}`
-
-  const system = [
-    'You are Dogear, an editor who turns video transcripts into learning guides.',
-    'Return only valid JSON. No markdown fences, no commentary, no em dashes.',
-    'Do not paste the transcript. Paraphrase, explain, and connect the ideas.',
-    'Every claim must be supported by the transcript. If the transcript is uncertain, say so.',
-    'Use the transcript timestamps to place chapter boundaries in seconds.',
-    'Escape quotation marks inside strings and do not use trailing commas.',
-  ].join(' ')
-
-  const minChapters = meta.duration >= 1200 ? 6 : meta.duration >= 600 ? 5 : 3
-
-  const user = [
-    `Video: ${meta.title}`,
-    `Channel: ${meta.channel}`,
-    `Duration: ${formatClock(meta.duration)}`,
-    `Reading level: ${level}. ${LEVEL_GUIDANCE[level] || LEVEL_GUIDANCE.ELI15}`,
-    `Purpose: ${purpose}. ${PURPOSE_GUIDANCE[purpose] || PURPOSE_GUIDANCE.understand}`,
-    `Write ${minChapters} to ${minChapters + 2} chapters. Cover the whole video, not just the opening.`,
-    'Build understanding, not a summary. Every chapter must explain mechanisms and causal links, not merely recap what was said.',
-    'Each chapter needs 2 to 4 explanatory paragraphs, one callout labeled "Mental model", "Common mistake", "Try it", or "Interview angle", and one recall question with a model answer.',
-    'For interview prep, make at least one recall question sound like a real interview question.',
-    'Do not use generic titles like "Part 1". The guide should teach, not transcribe.',
-    `JSON schema: ${schema}`,
-    ...(extraInstruction ? [extraInstruction] : []),
-    'Transcript:',
-    transcriptForModel(cues),
-  ].join('\n\n')
-
-  const callModel = async (messages, temperature) => {
-    const response = await fetch('https://api.tokenfactory.nebius.com/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${stored.value}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        model,
-        messages,
-        temperature,
-        max_tokens: 7000,
-      }),
-      signal: AbortSignal.timeout(120_000),
-    })
-
-    if (!response.ok) {
-      if (response.status === 401 || response.status === 403) {
-        throw new Error('Nebius rejected the key. Check it in Keys.')
-      }
-      throw new Error(`Nebius returned ${response.status}.`)
-    }
-    const data = await response.json()
-    const content = data?.choices?.[0]?.message?.content
-    if (typeof content !== 'string' || !content.trim()) throw new Error('Nebius returned an empty guide.')
-    return content
-  }
-
-  const content = await callModel(
-    [
-      { role: 'system', content: system },
-      { role: 'user', content: user },
-    ],
-    0.2,
-  )
-
-  try {
-    return parseModelJson(content)
-  } catch {
-    const repaired = await callModel(
-      [
-        {
-          role: 'system',
-          content: `${system} Return one valid JSON object only. No commentary.`,
-        },
-        {
-          role: 'user',
-          content: [
-            'The previous guide response was not valid JSON. Repair it and return the same guide as valid JSON only.',
-            `Schema: ${schema}`,
-            'Previous output:',
-            content.slice(0, 14000),
-          ].join('\n\n'),
-        },
-      ],
-      0,
-    )
-    try {
-      return parseModelJson(repaired)
-    } catch {
-      throw new Error('The model returned an unreadable guide twice. Try again.')
-    }
-  }
-}
-
 function normalizeGuideJson(parsed, prepared, level, purpose) {
   const rawChapters = Array.isArray(parsed?.chapters) ? parsed.chapters : []
   if (rawChapters.length < 2) throw new Error('The model did not return enough chapters.')
@@ -800,6 +684,7 @@ async function generateChapterBody({ stored, model, level, purpose, meta, outlin
     `Purpose: ${purpose}. ${PURPOSE_GUIDANCE[purpose] || PURPOSE_GUIDANCE.understand}`,
     'Write 3 to 5 blocks. Include at least one p, one callout, and one recall question.',
     'Add one diagram only when it makes a process, architecture, or comparison clearer. Use kind flow, stack, compare, or annotated, with 3 to 6 items. Ground every label in the transcript; omit the diagram if it would be decorative or uncertain.',
+    'Place the diagram after the explanation it supports and before the recall question.',
     'The recall answer should explain the idea in one or two sentences.',
     `JSON schema: ${schema}`,
     `Transcript segment [${formatClock(outline.start)} to ${formatClock(outline.end)}]:`,
@@ -1106,15 +991,34 @@ async function searchTavily(query) {
   return { sources, demo: false }
 }
 
-async function askNebius({ question, context, quote, level, model }) {
+const ANSWER_LEVEL_RULES = {
+  ELI5: 'Use short sentences, simple words, and one everyday analogy. Do not use an unexplained technical term.',
+  ELI15: 'Write for a curious adult. Define necessary terms and avoid unexplained jargon.',
+  Undergrad: 'Write for a technical reader. Be precise about the mechanism, assumptions, and tradeoffs.',
+  Expert: 'Be precise and compact. Skip basics and focus on edge cases, constraints, and decisions.',
+}
+
+const ANSWER_ACTION_RULES = {
+  explain: 'Explain what the highlighted passage means in this chapter and the mechanism behind it. Do not summarize the whole chapter.',
+  simplify: 'Rewrite the idea in plain language without losing its meaning. Define any jargon you must keep.',
+  example: 'Give one concrete example that makes the highlighted passage clear. Use the chapter’s actual components and label it as an example.',
+}
+
+async function askNebius({ question, context, quote, level, model, action }) {
   const stored = await getStoredKey('nebius')
   if (!stored) throw new Error('Add a Nebius Token Factory key to ask live questions.')
   const chosenModel = typeof model === 'string' && model ? model : DEFAULT_MODEL
+  const actionRule = action && ANSWER_ACTION_RULES[action]
   const system = [
     'You are Dogear, a reading companion for a chaptered video guide.',
-    'Answer in at most two short paragraphs. Be direct and concrete.',
-    'Use only the supplied chapter context. If the context does not answer, say so plainly.',
-    'No markdown, no bullet lists, no em dashes.',
+    actionRule
+      ? `The reader highlighted a passage. ${actionRule}`
+      : 'Answer the reader’s question directly from the chapter context.',
+    ANSWER_LEVEL_RULES[level] || ANSWER_LEVEL_RULES.ELI15,
+    'The highlighted passage may be a single word or short phrase. Explain that phrase in this chapter, not the whole chapter.',
+    'Do not start by restating the highlight or the chapter title. Start with the answer.',
+    'Use only the supplied chapter context. If the context does not answer, say what is missing instead of inventing.',
+    'At most two short paragraphs. No markdown, no bullet lists, no em dashes.',
   ].join(' ')
   const user = [
     `Reading level: ${level || 'ELI15'}.`,
@@ -1124,34 +1028,44 @@ async function askNebius({ question, context, quote, level, model }) {
     `Question: ${String(question || '').slice(0, 800)}`,
   ].join('\n\n')
 
-  const response = await fetch('https://api.tokenfactory.nebius.com/v1/chat/completions', {
-    method: 'POST',
-    headers: {
-      Authorization: `Bearer ${stored.value}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      model: chosenModel,
-      messages: [
-        { role: 'system', content: system },
-        { role: 'user', content: user },
-      ],
-      temperature: 0.3,
-      max_tokens: 420,
-    }),
-    signal: AbortSignal.timeout(55_000),
-  })
-  if (!response.ok) {
-    if (response.status === 401 || response.status === 403) {
-      throw new Error('Nebius rejected the key. Check it in Keys.')
+  for (let attempt = 0; attempt < 2; attempt += 1) {
+    const response = await fetch('https://api.tokenfactory.nebius.com/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${stored.value}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        model: chosenModel,
+        messages: [
+          { role: 'system', content: system },
+          {
+            role: 'user',
+            content:
+              attempt === 0
+                ? user
+                : `${user}\n\nReturn a direct answer now, in plain prose. Do not return an empty response.`,
+          },
+        ],
+        temperature: action === 'example' ? 0.35 : 0.2,
+        max_tokens: 1600,
+      }),
+      signal: AbortSignal.timeout(55_000),
+    })
+    if (!response.ok) {
+      if (response.status === 401 || response.status === 403) {
+        throw new Error('Nebius rejected the key. Check it in Keys.')
+      }
+      if (attempt === 1) throw new Error(`Nebius returned ${response.status}.`)
+      continue
     }
-    throw new Error(`Nebius returned ${response.status}.`)
+    const data = await response.json()
+    const answer = data?.choices?.[0]?.message?.content
+    if (typeof answer === 'string' && answer.trim()) return answer.trim()
   }
-  const data = await response.json()
-  const answer = data?.choices?.[0]?.message?.content
-  if (typeof answer !== 'string' || !answer.trim()) throw new Error('Nebius returned an empty answer.')
-  return answer.trim()
+  throw new Error('Nebius returned an empty answer.')
 }
+
 
 async function handleApi(request, response, url) {
   cors(request, response)
@@ -1247,6 +1161,7 @@ async function handleApi(request, response, url) {
         quote: body.quote,
         level: body.level,
         model: body.model,
+        action: ['explain', 'simplify', 'example'].includes(body.action) ? body.action : null,
       })
       sendJson(response, 200, { answer, mode: 'live' })
     } catch (error) {
